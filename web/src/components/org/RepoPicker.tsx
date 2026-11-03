@@ -29,6 +29,8 @@ interface Props {
 }
 
 export default function RepoPicker({ names, excluded, onChange }: Props) {
+  const [query, setQuery] = useState("");
+  const shown = names.filter((n) => n.toLowerCase().includes(query.trim().toLowerCase()));
   const toggle = (name: string) => {
     const next = new Set(excluded);
     if (next.has(name)) next.delete(name);
@@ -45,16 +47,26 @@ export default function RepoPicker({ names, excluded, onChange }: Props) {
       <p className="text-xs text-gray-500 mt-3 mb-3">
         Untick a repository to leave it out of every number on this page. The choice is saved in this browser.
       </p>
-      <div className="flex gap-3 mb-3 text-xs">
-        <button type="button" className="text-accent hover:text-accent-light" onClick={() => onChange(new Set())}>
-          Select all
+      <div className="flex flex-wrap items-center gap-3 mb-3 text-xs">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search repositories"
+          aria-label="Search repositories"
+          className="bg-surface-elevated border border-surface-border rounded-md px-3 py-1.5 text-sm text-gray-200 w-64 max-w-full"
+        />
+        {/* The buttons act on the repositories that match the search, so you can add or drop a group at once. */}
+        <button type="button" className="text-accent hover:text-accent-light" onClick={() => onChange(new Set([...excluded].filter((n) => !shown.includes(n))))}>
+          Select {query ? "matches" : "all"}
         </button>
-        <button type="button" className="text-accent hover:text-accent-light" onClick={() => onChange(new Set(names))}>
-          Select none
+        <button type="button" className="text-accent hover:text-accent-light" onClick={() => onChange(new Set([...excluded, ...shown]))}>
+          Deselect {query ? "matches" : "all"}
         </button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {names.map((name) => (
+      {shown.length === 0 && <p className="text-sm text-gray-500">No repository matches "{query}".</p>}
+      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
+        {shown.map((name) => (
           <label
             key={name}
             className="flex items-center gap-2 px-2 py-1 rounded-md border border-surface-border text-sm text-gray-300 cursor-pointer hover:border-accent/50"
