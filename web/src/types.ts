@@ -77,8 +77,24 @@ export interface ReportData {
   recommendations: Recommendation[];
 }
 
+export interface OrgRepoSummary {
+  repoName: string;
+  level: MaturityLevel;
+  percentage: number;
+  timestamp: string;
+  levelDelta: number | null;
+  percentageDelta: number | null;
+}
+
+export interface OrgSummary {
+  orgLevel: number;
+  repos: OrgRepoSummary[];
+  trend: Array<{ date: string; orgLevel: number; repoCount: number }>;
+}
+
 declare global {
   interface Window {
     __KODUS_REPORT_DATA__?: ReportData;
+    __KODUS_ORG_DATA__?: OrgSummary;
   }
 }

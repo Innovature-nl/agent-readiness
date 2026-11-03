@@ -4,6 +4,7 @@ import http from "node:http";
 import { fileURLToPath } from "node:url";
 import { exec } from "node:child_process";
 import type { SerializedReportData } from "../engine/serializer.js";
+import type { OrgSummary } from "../engine/history.js";
 
 function getCurrentDir(): string {
   // Bun provides import.meta.dir, Node uses import.meta.dirname (21+) or fileURLToPath
@@ -49,7 +50,10 @@ function getMimeType(filePath: string): string {
  *
  * Returns the server instance and the URL it's listening on.
  */
-export async function startServer(reportData: SerializedReportData): Promise<{
+export async function startServer(
+  reportData: SerializedReportData | OrgSummary,
+  globalName: "__KODUS_REPORT_DATA__" | "__KODUS_ORG_DATA__" = "__KODUS_REPORT_DATA__",
+): Promise<{
   server: http.Server;
   url: string;
 }> {
@@ -68,7 +72,7 @@ export async function startServer(reportData: SerializedReportData): Promise<{
   const jsonPayload = JSON.stringify(reportData);
   const injectedHtml = indexHtml.replace(
     "</head>",
-    `<script>window.__KODUS_REPORT_DATA__ = ${jsonPayload};</script>\n</head>`,
+    `<script>window.${globalName} = ${jsonPayload};</script>\n</head>`,
   );
 
   const server = http.createServer((req, res) => {

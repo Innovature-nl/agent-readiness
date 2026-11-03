@@ -1,5 +1,6 @@
 import type { ReportData } from "./types";
 import Dashboard from "./components/Dashboard";
+import OrgDashboard from "./components/OrgDashboard";
 
 const MOCK_DATA: ReportData = {
   repoName: "example-repo",
@@ -57,6 +58,8 @@ const MOCK_DATA: ReportData = {
 };
 
 function App() {
+  if (window.__KODUS_ORG_DATA__) return <OrgDashboard data={window.__KODUS_ORG_DATA__} />;
+
   const data: ReportData | undefined = window.__KODUS_REPORT_DATA__ ?? MOCK_DATA;
 
   if (!data) {

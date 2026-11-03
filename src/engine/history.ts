@@ -1,0 +1,138 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { MaturityLevel, PillarScore, ReportData } from "../types/index.js";
+import { overallPercentage } from "../renderer/index.js";
+
+export interface Snapshot {
+  repoName: string;
+  timestamp: string;
+  level: MaturityLevel;
+  percentage: number;
+  pillarScores: PillarScore[];
+  passed: string[];
+  failed: string[];
+}
+
+export interface SnapshotDiff {
+  levelDelta: number;
+  percentageDelta: number;
+  newlyPassing: string[];
+  newlyFailing: string[];
+}
+
+export interface OrgRepoSummary {
+  repoName: string;
+  level: MaturityLevel;
+  percentage: number;
+  timestamp: string;
+  levelDelta: number | null;
+  percentageDelta: number | null;
+}
+
+export interface OrgSummary {
+  orgLevel: number;
+  repos: OrgRepoSummary[];
+  trend: Array<{ date: string; orgLevel: number; repoCount: number }>;
+}
+
+export function toSnapshot(report: ReportData, timestamp: Date = new Date()): Snapshot {
+  const passed: string[] = [];
+  const failed: string[] = [];
+  for (const results of report.results.values()) {
+    for (const r of results) {
+      if (r.skipped) continue;
+      (r.pass ? passed : failed).push(r.criterionId);
+    }
+  }
+  return {
+    repoName: report.repoName,
+    timestamp: timestamp.toISOString(),
+    level: report.levelResult.level,
+    percentage: overallPercentage(report.pillarScores),
+    pillarScores: report.pillarScores,
+    passed: passed.sort(),
+    failed: failed.sort(),
+  };
+}
+
+/** Reads all snapshots under `<dir>/<repo>/*.json`, oldest first per repo. */
+export async function loadHistory(dir: string): Promise<Map<string, Snapshot[]>> {
+  const history = new Map<string, Snapshot[]>();
+  let repoDirs: string[];
+  try {
+    repoDirs = await fs.readdir(dir);
+  } catch {
+    return history;
+  }
+  for (const repo of repoDirs) {
+    const repoDir = path.join(dir, repo);
+    if (!(await fs.stat(repoDir)).isDirectory()) continue;
+    const files = (await fs.readdir(repoDir)).filter((f) => f.endsWith(".json"));
+    const snapshots: Snapshot[] = [];
+    for (const file of files) {
+      snapshots.push(JSON.parse(await fs.readFile(path.join(repoDir, file), "utf-8")));
+    }
+    if (snapshots.length === 0) continue;
+    snapshots.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    history.set(snapshots[0].repoName, snapshots);
+  }
+  return history;
+}
+
+/** Writes the snapshot and returns the most recent earlier snapshot of the same repo, if any. */
+export async function saveSnapshot(dir: string, snapshot: Snapshot): Promise<Snapshot | undefined> {
+  const repoDir = path.join(dir, snapshot.repoName);
+  const previous = (await loadHistory(dir)).get(snapshot.repoName)?.at(-1);
+  await fs.mkdir(repoDir, { recursive: true });
+  // Colons are not allowed in Windows file names.
+  const file = `${snapshot.timestamp.replace(/:/g, "-")}.json`;
+  await fs.writeFile(path.join(repoDir, file), `${JSON.stringify(snapshot, null, 2)}\n`, "utf-8");
+  return previous;
+}
+
+export function diffSnapshots(previous: Snapshot, current: Snapshot): SnapshotDiff {
+  const wasPassing = new Set(previous.passed);
+  const wasFailing = new Set(previous.failed);
+  return {
+    levelDelta: current.level - previous.level,
+    percentageDelta: current.percentage - previous.percentage,
+    newlyPassing: current.passed.filter((id) => !wasPassing.has(id)),
+    newlyFailing: current.failed.filter((id) => !wasFailing.has(id)),
+  };
+}
+
+/** Same rule as Factory: the average of the repo levels, rounded down. */
+function orgLevel(levels: number[]): number {
+  if (levels.length === 0) return 0;
+  return Math.floor(levels.reduce((sum, l) => sum + l, 0) / levels.length);
+}
+
+export function summarizeOrg(history: Map<string, Snapshot[]>): OrgSummary {
+  const repos: OrgRepoSummary[] = [];
+  for (const [repoName, snapshots] of history) {
+    const latest = snapshots.at(-1)!;
+    const previous = snapshots.at(-2);
+    repos.push({
+      repoName,
+      level: latest.level,
+      percentage: latest.percentage,
+      timestamp: latest.timestamp,
+      levelDelta: previous ? latest.level - previous.level : null,
+      percentageDelta: previous ? latest.percentage - previous.percentage : null,
+    });
+  }
+  repos.sort((a, b) => a.level - b.level || a.percentage - b.percentage || a.repoName.localeCompare(b.repoName));
+
+  // For each day with at least one scan, every repo counts with its latest snapshot up to that day.
+  const dates = [...new Set([...history.values()].flat().map((s) => s.timestamp.slice(0, 10)))].sort();
+  const trend = dates.map((date) => {
+    const levels: number[] = [];
+    for (const snapshots of history.values()) {
+      const latest = snapshots.filter((s) => s.timestamp.slice(0, 10) <= date).at(-1);
+      if (latest) levels.push(latest.level);
+    }
+    return { date, orgLevel: orgLevel(levels), repoCount: levels.length };
+  });
+
+  return { orgLevel: orgLevel(repos.map((r) => r.level)), repos, trend };
+}

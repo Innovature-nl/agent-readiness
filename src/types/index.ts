@@ -108,6 +108,7 @@ export interface CLIOptions {
   noColor: boolean;
   init: boolean;
   web: boolean;
+  history?: string;
 }
 
 export interface RenderOptions {

@@ -208,6 +208,33 @@ bunx @kodus/agent-readiness . --no-web
 
 ---
 
+## History and Organization Overview
+
+Keep a snapshot of every run and see what changed since the previous one:
+
+```bash
+npx @kodus/agent-readiness . --history ./readiness-history
+```
+
+Each run writes `<dir>/<repo>/<timestamp>.json` and prints the level and score change plus the criteria that started passing or failing.
+
+Scan several repositories into the same directory, then summarize them:
+
+```bash
+for repo in ~/code/*/; do npx @kodus/agent-readiness "$repo" --no-web --history ./readiness-history; done
+npx @kodus/agent-readiness org ./readiness-history
+```
+
+The `org` command shows:
+
+- the organization level: the average repository level, rounded down
+- the share of repositories at level 3 or higher
+- how many repositories sit at each level
+- the organization level over time (one point per day with a scan)
+- every repository, lowest first, with its change since the previous scan
+
+It opens the same web dashboard as a single-repo run. Use `--no-web` for terminal output only or `--format json` for integrations. Repositories are keyed by directory name, so two repositories with the same name share one history.
+
 ## Configuration
 
 Generate a default configuration file:

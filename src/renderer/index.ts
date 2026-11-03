@@ -74,7 +74,7 @@ function findPillar(pillars: Pillar[], pillarId: string): Pillar | undefined {
   return pillars.find((p) => p.id === pillarId);
 }
 
-function overallPercentage(pillarScores: PillarScore[]): number {
+export function overallPercentage(pillarScores: PillarScore[]): number {
   if (pillarScores.length === 0) return 0;
   const totalPassed = pillarScores.reduce((sum, s) => sum + s.passed, 0);
   const totalCriteria = pillarScores.reduce((sum, s) => sum + s.total, 0);

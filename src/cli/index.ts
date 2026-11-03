@@ -15,6 +15,8 @@ import { loadConfig, generateDefaultConfig } from "../engine/config.js";
 import { createLLMClient } from "../engine/llm-client.js";
 import { serializeReport } from "../engine/serializer.js";
 import { startServer, openBrowser } from "../server/index.js";
+import { toSnapshot, saveSnapshot, diffSnapshots, loadHistory, summarizeOrg } from "../engine/history.js";
+import { renderHistoryDiff, renderOrgSummary } from "../renderer/history.js";
 
 /**
  * Main orchestration function.
@@ -165,6 +167,15 @@ async function main(options: CLIOptions): Promise<void> {
       renderReport(reportData, { noColor: options.noColor, ci: isCI });
     }
 
+    // Store a snapshot and show what changed since the previous one
+    if (options.history) {
+      const snapshot = toSnapshot(reportData);
+      const previous = await saveSnapshot(path.resolve(options.history), snapshot);
+      if (!isJSON) {
+        renderHistoryDiff(previous && diffSnapshots(previous, snapshot), previous?.timestamp);
+      }
+    }
+
     // p. If --web flag is set, start the dashboard server
     if (options.web) {
       const serialized = serializeReport(reportData);
@@ -207,6 +218,7 @@ export function run(): void {
   const program = new Command();
 
   program
+    .enablePositionalOptions()
     .name("kodus-agent-readiness")
     .description(description)
     .version(version)
@@ -221,6 +233,7 @@ export function run(): void {
     .option("--no-color", "Disable colored output")
     .option("--init", "Generate a .kodus-readiness.yml config file", false)
     .option("--no-web", "Disable the web dashboard")
+    .option("--history <dir>", "Store a snapshot in <dir> and show changes since the last run")
     .action(async (pathArg: string, opts: Record<string, unknown>) => {
       const cliOptions: CLIOptions = {
         path: pathArg,
@@ -234,9 +247,36 @@ export function run(): void {
         noColor: !opts.color,
         init: Boolean(opts.init),
         web: opts.web !== false,
+        history: opts.history as string | undefined,
       };
 
       await main(cliOptions);
+    });
+
+  program
+    .command("org")
+    .description("Summarize the latest snapshot of every repository in a history directory")
+    .argument("<dir>", "History directory written by --history")
+    .option("--format <format>", "Output format (text or json)", "text")
+    .option("--no-web", "Disable the web dashboard")
+    .action(async (dir: string, opts: { format: string; web: boolean }) => {
+      const summary = summarizeOrg(await loadHistory(path.resolve(dir)));
+      if (opts.format === "json") {
+        console.log(JSON.stringify(summary, null, 2));
+        return;
+      }
+      renderOrgSummary(summary);
+      if (!opts.web || summary.repos.length === 0) return;
+      try {
+        const { url } = await startServer(summary, "__KODUS_ORG_DATA__");
+        console.log(chalk.bold.cyan("  Dashboard: ") + chalk.underline(url));
+        console.log(chalk.dim("  Press Ctrl+C to stop the server."));
+        await openBrowser(url);
+        await new Promise(() => {});
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(chalk.red(`Failed to start web dashboard: ${msg}`));
+      }
     });
 
   program.parse();
