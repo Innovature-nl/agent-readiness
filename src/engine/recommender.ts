@@ -11,7 +11,7 @@ import type {
 // Actionable description + reason mapping keyed by criterion ID
 // ---------------------------------------------------------------------------
 
-const CRITERION_INFO: Record<
+export const CRITERION_INFO: Record<
   string,
   { description: string; reason: string }
 > = {
@@ -54,7 +54,7 @@ const CRITERION_INFO: Record<
     reason:
       "A configured test framework lets agents write and run tests to verify their changes automatically",
   },
-  "test-files": {
+  "test-files-exist": {
     description:
       "Add test files alongside source code following standard naming conventions (*.test.*, *.spec.*, etc.)",
     reason:
@@ -66,7 +66,7 @@ const CRITERION_INFO: Record<
     reason:
       "A standard test command allows agents to verify changes without guessing how to run the test suite",
   },
-  coverage: {
+  "coverage-config": {
     description:
       "Set up code coverage reporting in your test framework configuration",
     reason:
@@ -130,7 +130,7 @@ const CRITERION_INFO: Record<
     reason:
       "Containerization gives agents a fully reproducible environment, eliminating setup discrepancies",
   },
-  "env-docs": {
+  "env-documentation": {
     description:
       "Create a .env.example or .env.template documenting all required environment variables",
     reason:
@@ -156,19 +156,19 @@ const CRITERION_INFO: Record<
     reason:
       "CI pipelines give agents automated feedback on whether their changes pass all quality gates",
   },
-  "ci-tests": {
+  "ci-runs-tests": {
     description:
       "Ensure your CI pipeline runs the test suite on every push and pull request",
     reason:
       "Running tests in CI means agents get immediate feedback if their changes break existing functionality",
   },
-  "ci-linters": {
+  "ci-runs-linters": {
     description:
       "Add linting and formatting checks to your CI pipeline",
     reason:
       "CI lint checks catch style issues agents may miss locally, keeping the codebase consistent",
   },
-  "build-step": {
+  "build-automated": {
     description:
       "Add an automated build step to your CI pipeline or package.json scripts",
     reason:
@@ -188,13 +188,13 @@ const CRITERION_INFO: Record<
   },
 
   // Code Health
-  "outdated-deps": {
+  "no-outdated-deps": {
     description:
       "Update critically outdated dependencies to their latest stable versions",
     reason:
       "Current dependencies reduce compatibility issues agents encounter and ensure security patches are applied",
   },
-  "dead-code": {
+  "dead-code-detection": {
     description:
       "Configure dead code detection using Knip, ts-unused-exports, or a similar tool",
     reason:
@@ -232,7 +232,7 @@ const CRITERION_INFO: Record<
     reason:
       "A security policy gives agents guidance on handling security-sensitive changes appropriately",
   },
-  "dep-updates": {
+  "dep-update-automation": {
     description:
       "Configure automated dependency updates with Dependabot or Renovate",
     reason:
@@ -288,7 +288,7 @@ const CRITERION_INFO: Record<
 // Effort estimate mapping keyed by criterion ID
 // ---------------------------------------------------------------------------
 
-const EFFORT_MAP: Record<string, Recommendation["effort"]> = {
+export const EFFORT_MAP: Record<string, Recommendation["effort"]> = {
   // File creation = low
   editorconfig: "low",
   license: "low",
@@ -297,7 +297,7 @@ const EFFORT_MAP: Record<string, Recommendation["effort"]> = {
   codeowners: "low",
   "security-policy": "low",
   "ai-context": "low",
-  "env-docs": "low",
+  "env-documentation": "low",
   "lock-file": "low",
   "version-pinned": "low",
 
@@ -307,23 +307,23 @@ const EFFORT_MAP: Record<string, Recommendation["effort"]> = {
   "type-checker": "medium",
   "pre-commit-hooks": "medium",
   "test-framework": "medium",
-  "test-files": "medium",
+  "test-files-exist": "medium",
   "test-script": "medium",
   "ci-config": "medium",
-  "ci-tests": "medium",
-  "ci-linters": "medium",
-  "build-step": "medium",
+  "ci-runs-tests": "medium",
+  "ci-runs-linters": "medium",
+  "build-automated": "medium",
   "setup-script": "medium",
   "api-docs": "medium",
-  "dead-code": "medium",
+  "dead-code-detection": "medium",
   "secrets-detection": "medium",
-  "dep-updates": "medium",
+  "dep-update-automation": "medium",
   "branch-protection": "medium",
-  "outdated-deps": "medium",
+  "no-outdated-deps": "medium",
 
   // Comprehensive setup = high
   "e2e-tests": "high",
-  coverage: "high",
+  "coverage-config": "high",
   containerization: "high",
   "deploy-pipeline": "high",
   "security-scanning": "high",

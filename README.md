@@ -233,7 +233,7 @@ The `org` command shows:
 - the organization level over time (one point per day with a scan)
 - every repository, lowest first, with its change since the previous scan
 
-It opens the same web dashboard as a single-repo run. Use `--no-web` for terminal output only or `--format json` for integrations. Repositories are keyed by directory name, so two repositories with the same name share one history.
+The web dashboard explains each part, lists the "biggest wins" (the checks that hold back the most repositories from their next level, with how to fix them), shows every check per category with how many repositories pass it, and lets you open any repository for a step-by-step plan to its next level. Use `--no-web` for terminal output only or `--format json` for integrations. Repositories are keyed by directory name, so two repositories with the same name share one history.
 
 ## Configuration
 

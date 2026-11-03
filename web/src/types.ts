@@ -84,10 +84,25 @@ export interface OrgRepoSummary {
   timestamp: string;
   levelDelta: number | null;
   percentageDelta: number | null;
+  passed: string[];
+  failed: string[];
+}
+
+export interface CriterionInfo {
+  id: string;
+  name: string;
+  pillarId: string;
+  level: MaturityLevel;
+  requiresLLM: boolean;
+  fix: string;
+  why: string;
+  effort: string;
 }
 
 export interface OrgSummary {
   orgLevel: number;
+  pillars: Array<{ id: string; name: string }>;
+  criteria: CriterionInfo[];
   repos: OrgRepoSummary[];
   trend: Array<{ date: string; orgLevel: number; repoCount: number }>;
 }

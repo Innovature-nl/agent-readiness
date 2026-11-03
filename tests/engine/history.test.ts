@@ -8,6 +8,7 @@ import {
   summarizeOrg,
 } from "../../src/engine/history.js";
 import { createTestDir, cleanup } from "../helpers.js";
+import { ALL_PILLARS } from "../../src/pillars/index.js";
 
 let dirs: string[] = [];
 
@@ -64,9 +65,17 @@ describe("history", () => {
     // (4 + 1) / 2 = 2.5, rounded down
     expect(summary.orgLevel).toBe(2);
     expect(summary.repos.map((r) => [r.repoName, r.levelDelta])).toEqual([["web", null], ["api", 2]]);
+    expect(summary.criteria).toEqual([]);
     expect(summary.trend).toEqual([
       { date: "2026-11-01", orgLevel: 1, repoCount: 2 },
       { date: "2026-11-02", orgLevel: 2, repoCount: 2 },
     ]);
+  });
+
+  test("summarizeOrg lists every criterion with fix advice", () => {
+    const summary = summarizeOrg(new Map(), ALL_PILLARS);
+    const ids = ALL_PILLARS.flatMap((p) => p.criteria.map((c) => c.id));
+    expect(summary.criteria.map((c) => c.id)).toEqual(ids);
+    expect(summary.criteria.filter((c) => !c.why).map((c) => c.id)).toEqual([]);
   });
 });

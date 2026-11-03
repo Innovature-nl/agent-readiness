@@ -260,7 +260,7 @@ export function run(): void {
     .option("--format <format>", "Output format (text or json)", "text")
     .option("--no-web", "Disable the web dashboard")
     .action(async (dir: string, opts: { format: string; web: boolean }) => {
-      const summary = summarizeOrg(await loadHistory(path.resolve(dir)));
+      const summary = summarizeOrg(await loadHistory(path.resolve(dir)), ALL_PILLARS);
       if (opts.format === "json") {
         console.log(JSON.stringify(summary, null, 2));
         return;

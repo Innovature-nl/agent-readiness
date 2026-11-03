@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { MaturityLevel, PillarScore, ReportData } from "../types/index.js";
+import type { MaturityLevel, Pillar, PillarScore, ReportData } from "../types/index.js";
 import { overallPercentage } from "../renderer/index.js";
+import { CRITERION_INFO, EFFORT_MAP } from "./recommender.js";
 
 export interface Snapshot {
   repoName: string;
@@ -27,10 +28,26 @@ export interface OrgRepoSummary {
   timestamp: string;
   levelDelta: number | null;
   percentageDelta: number | null;
+  passed: string[];
+  failed: string[];
+}
+
+/** Static description of a criterion, so the dashboard can explain it and say how to fix it. */
+export interface CriterionInfo {
+  id: string;
+  name: string;
+  pillarId: string;
+  level: MaturityLevel;
+  requiresLLM: boolean;
+  fix: string;
+  why: string;
+  effort: string;
 }
 
 export interface OrgSummary {
   orgLevel: number;
+  pillars: Array<{ id: string; name: string }>;
+  criteria: CriterionInfo[];
   repos: OrgRepoSummary[];
   trend: Array<{ date: string; orgLevel: number; repoCount: number }>;
 }
@@ -107,7 +124,7 @@ function orgLevel(levels: number[]): number {
   return Math.floor(levels.reduce((sum, l) => sum + l, 0) / levels.length);
 }
 
-export function summarizeOrg(history: Map<string, Snapshot[]>): OrgSummary {
+export function summarizeOrg(history: Map<string, Snapshot[]>, pillars: Pillar[] = []): OrgSummary {
   const repos: OrgRepoSummary[] = [];
   for (const [repoName, snapshots] of history) {
     const latest = snapshots.at(-1)!;
@@ -119,6 +136,8 @@ export function summarizeOrg(history: Map<string, Snapshot[]>): OrgSummary {
       timestamp: latest.timestamp,
       levelDelta: previous ? latest.level - previous.level : null,
       percentageDelta: previous ? latest.percentage - previous.percentage : null,
+      passed: latest.passed,
+      failed: latest.failed,
     });
   }
   repos.sort((a, b) => a.level - b.level || a.percentage - b.percentage || a.repoName.localeCompare(b.repoName));
@@ -134,5 +153,24 @@ export function summarizeOrg(history: Map<string, Snapshot[]>): OrgSummary {
     return { date, orgLevel: orgLevel(levels), repoCount: levels.length };
   });
 
-  return { orgLevel: orgLevel(repos.map((r) => r.level)), repos, trend };
+  const criteria = pillars.flatMap((p) =>
+    p.criteria.map((c) => ({
+      id: c.id,
+      name: c.name,
+      pillarId: p.id,
+      level: c.level,
+      requiresLLM: c.requiresLLM,
+      fix: CRITERION_INFO[c.id]?.description ?? c.description,
+      why: CRITERION_INFO[c.id]?.reason ?? "",
+      effort: EFFORT_MAP[c.id] ?? "medium",
+    })),
+  );
+
+  return {
+    orgLevel: orgLevel(repos.map((r) => r.level)),
+    pillars: pillars.map((p) => ({ id: p.id, name: p.name })),
+    criteria,
+    repos,
+    trend,
+  };
 }
