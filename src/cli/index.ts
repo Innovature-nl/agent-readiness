@@ -10,6 +10,7 @@ import { AnalysisEngine } from "../engine/analyzer.js";
 import { calculatePillarScores, calculateLevel } from "../engine/scorer.js";
 import { generateRecommendations } from "../engine/recommender.js";
 import { ALL_PILLARS } from "../pillars/index.js";
+import { applyProfile, parseProfile, PROFILES } from "../pillars/profiles.js";
 import { renderReport } from "../renderer/index.js";
 import { loadConfig, generateDefaultConfig } from "../engine/config.js";
 import { createLLMClient } from "../engine/llm-client.js";
@@ -96,7 +97,7 @@ async function main(options: CLIOptions): Promise<void> {
     }
 
     // Filter pillars and criteria based on config
-    let pillars: Pillar[] = ALL_PILLARS;
+    let pillars: Pillar[] = applyProfile(ALL_PILLARS, options.profile);
     if (config.pillars) {
       pillars = pillars.filter((p) => config.pillars![p.id] !== false);
     }
@@ -234,6 +235,7 @@ export function run(): void {
     .option("--init", "Generate a .kodus-readiness.yml config file", false)
     .option("--no-web", "Disable the web dashboard")
     .option("--history <dir>", "Store a snapshot in <dir> and show changes since the last run")
+    .option("--profile <name>", `Check set to use (${PROFILES.join(", ")}); internal skips open-source-only checks`, "default")
     .action(async (pathArg: string, opts: Record<string, unknown>) => {
       const cliOptions: CLIOptions = {
         path: pathArg,
@@ -248,6 +250,7 @@ export function run(): void {
         init: Boolean(opts.init),
         web: opts.web !== false,
         history: opts.history as string | undefined,
+        profile: parseProfile(opts.profile),
       };
 
       await main(cliOptions);
@@ -259,8 +262,17 @@ export function run(): void {
     .argument("<dir>", "History directory written by --history")
     .option("--format <format>", "Output format (text or json)", "text")
     .option("--no-web", "Disable the web dashboard")
-    .action(async (dir: string, opts: { format: string; web: boolean }) => {
-      const summary = summarizeOrg(await loadHistory(path.resolve(dir)), ALL_PILLARS);
+    .option("--profile <name>", `Check set the snapshots were made with (${PROFILES.join(", ")})`, "default")
+    .option("--repos <names>", "Comma-separated repositories to include (default: all)")
+    .action(async (dir: string, opts: { format: string; web: boolean; profile: string; repos?: string }) => {
+      const history = await loadHistory(path.resolve(dir));
+      if (opts.repos) {
+        const wanted = new Set(opts.repos.split(",").map((r) => r.trim()).filter(Boolean));
+        for (const name of history.keys()) if (!wanted.has(name)) history.delete(name);
+        const missing = [...wanted].filter((r) => !history.has(r));
+        if (missing.length) console.warn(chalk.yellow(`No snapshots for: ${missing.join(", ")}`));
+      }
+      const summary = summarizeOrg(history, applyProfile(ALL_PILLARS, parseProfile(opts.profile)));
       if (opts.format === "json") {
         console.log(JSON.stringify(summary, null, 2));
         return;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   CartesianGrid,
   Line,
@@ -30,13 +30,26 @@ import {
   nextLevelPlan,
   rateClass,
   repoResult,
+  selectRepos,
 } from "./shared";
+import RepoPicker, { useExcludedRepos } from "./RepoPicker";
 
 interface Props {
   data: OrgSummary;
 }
 
 export default function OrgView({ data }: Props) {
+  const [excluded, setExcluded] = useExcludedRepos();
+  const view = useMemo(() => selectRepos(data, (name) => !excluded.has(name)), [data, excluded]);
+  return (
+    <OrgOverview
+      data={view}
+      picker={<RepoPicker names={data.repos.map((r) => r.repoName).sort()} excluded={excluded} onChange={setExcluded} />}
+    />
+  );
+}
+
+function OrgOverview({ data, picker }: Props & { picker: ReactNode }) {
   const [selectedRepo, setSelectedRepoState] = useState<string | null>(null);
   const setSelectedRepo = (name: string | null) => {
     setSelectedRepoState(name);
@@ -106,6 +119,7 @@ export default function OrgView({ data }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {picker}
       <Card
         title="Organization readiness"
         right={<span className="text-xs text-gray-500">{repos.length} repositories</span>}

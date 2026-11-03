@@ -30,6 +30,8 @@ export interface OrgRepoSummary {
   percentageDelta: number | null;
   passed: string[];
   failed: string[];
+  /** Level at the end of each day with a scan, oldest first; lets the dashboard rebuild the trend for any repo selection. */
+  history: Array<{ date: string; level: MaturityLevel }>;
 }
 
 /** Static description of a criterion, so the dashboard can explain it and say how to fix it. */
@@ -138,6 +140,7 @@ export function summarizeOrg(history: Map<string, Snapshot[]>, pillars: Pillar[]
       percentageDelta: previous ? latest.percentage - previous.percentage : null,
       passed: latest.passed,
       failed: latest.failed,
+      history: [...new Map(snapshots.map((s) => [s.timestamp.slice(0, 10), s.level])).entries()].map(([date, level]) => ({ date, level })),
     });
   }
   repos.sort((a, b) => a.level - b.level || a.percentage - b.percentage || a.repoName.localeCompare(b.repoName));
@@ -160,7 +163,7 @@ export function summarizeOrg(history: Map<string, Snapshot[]>, pillars: Pillar[]
       pillarId: p.id,
       level: c.level,
       requiresLLM: c.requiresLLM,
-      fix: CRITERION_INFO[c.id]?.description ?? c.description,
+      fix: [CRITERION_INFO[c.id]?.description ?? c.description, c.profileNote].filter(Boolean).join(" "),
       why: CRITERION_INFO[c.id]?.reason ?? "",
       effort: EFFORT_MAP[c.id] ?? "medium",
     })),

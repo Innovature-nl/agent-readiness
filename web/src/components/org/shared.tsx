@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { CriterionInfo, MaturityLevel, OrgRepoSummary } from "../../types";
+import type { CriterionInfo, MaturityLevel, OrgRepoSummary, OrgSummary } from "../../types";
 import { LEVEL_LABELS } from "../../types";
 
 export const LEVELS: MaturityLevel[] = [1, 2, 3, 4, 5];
@@ -152,4 +152,20 @@ export function FixItem({ c, extra }: { c: CriterionInfo; extra?: ReactNode }) {
       {c.why && <p className="text-xs text-gray-500 mt-0.5">Why: {c.why}</p>}
     </li>
   );
+}
+
+/** Same rule as the CLI: the average repository level, rounded down. */
+function orgLevel(levels: number[]): number {
+  return levels.length ? Math.floor(levels.reduce((sum, l) => sum + l, 0) / levels.length) : 0;
+}
+
+/** The summary restricted to some repositories, with the org level and trend recomputed for them. */
+export function selectRepos(data: OrgSummary, include: (name: string) => boolean): OrgSummary {
+  const repos = data.repos.filter((r) => include(r.repoName));
+  const dates = [...new Set(repos.flatMap((r) => r.history.map((h) => h.date)))].sort();
+  const trend = dates.map((date) => {
+    const levels = repos.flatMap((r) => r.history.filter((h) => h.date <= date).slice(-1).map((h) => h.level));
+    return { date, orgLevel: orgLevel(levels), repoCount: levels.length };
+  });
+  return { ...data, repos, orgLevel: orgLevel(repos.map((r) => r.level)), trend };
 }

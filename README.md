@@ -235,6 +235,17 @@ The `org` command shows:
 
 The web dashboard explains each part, lists the "biggest wins" (the checks that hold back the most repositories from their next level, with how to fix them), shows every check per category with how many repositories pass it, and lets you open any repository for a step-by-step plan to its next level. Use `--no-web` for terminal output only or `--format json` for integrations. Repositories are keyed by directory name, so two repositories with the same name share one history.
 
+To limit the overview to some repositories, pass `--repos api,web` to `org`, or untick repositories in the dashboard (the choice is saved in your browser).
+
+### Profiles
+
+`--profile internal` is meant for private company repositories. It skips `license` and `security-policy`, which only matter for code shared outside the company, and lets `contributing` pass on an AGENTS.md or CLAUDE.md and `editorconfig` pass on a configured formatter. Use the same profile for the scans and for `org`:
+
+```bash
+npx @kodus/agent-readiness "$repo" --no-web --profile internal --history ./readiness-history
+npx @kodus/agent-readiness org ./readiness-history --profile internal
+```
+
 ## Configuration
 
 Generate a default configuration file:

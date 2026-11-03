@@ -38,6 +38,8 @@ export interface Criterion {
   level: MaturityLevel;
   requiresLLM: boolean;
   check: CriterionCheckFn;
+  /** Extra fix advice added by a profile, such as an alternative that also passes. */
+  profileNote?: string;
 }
 
 export interface Pillar {
@@ -109,6 +111,7 @@ export interface CLIOptions {
   init: boolean;
   web: boolean;
   history?: string;
+  profile: "default" | "internal";
 }
 
 export interface RenderOptions {

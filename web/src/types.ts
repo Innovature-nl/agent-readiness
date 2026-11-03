@@ -86,6 +86,7 @@ export interface OrgRepoSummary {
   percentageDelta: number | null;
   passed: string[];
   failed: string[];
+  history: Array<{ date: string; level: MaturityLevel }>;
 }
 
 export interface CriterionInfo {

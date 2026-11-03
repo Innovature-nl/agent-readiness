@@ -66,6 +66,10 @@ describe("history", () => {
     expect(summary.orgLevel).toBe(2);
     expect(summary.repos.map((r) => [r.repoName, r.levelDelta])).toEqual([["web", null], ["api", 2]]);
     expect(summary.criteria).toEqual([]);
+    expect(summary.repos.find((r) => r.repoName === "api")?.history).toEqual([
+      { date: "2026-11-01", level: 2 },
+      { date: "2026-11-02", level: 4 },
+    ]);
     expect(summary.trend).toEqual([
       { date: "2026-11-01", orgLevel: 1, repoCount: 2 },
       { date: "2026-11-02", orgLevel: 2, repoCount: 2 },
