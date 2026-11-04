@@ -167,5 +167,5 @@ export function selectRepos(data: OrgSummary, include: (name: string) => boolean
     const levels = repos.flatMap((r) => r.history.filter((h) => h.date <= date).slice(-1).map((h) => h.level));
     return { date, orgLevel: orgLevel(levels), repoCount: levels.length };
   });
-  return { ...data, repos, orgLevel: orgLevel(repos.map((r) => r.level)), trend };
+  return { ...data, criteria: sortByLevel(data.criteria), repos, orgLevel: orgLevel(repos.map((r) => r.level)), trend };
 }
