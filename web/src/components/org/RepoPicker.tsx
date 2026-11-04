@@ -61,7 +61,7 @@ export default function RepoPicker({ names, excluded, onChange, github, onScanne
   };
 
   return (
-    <details className="bg-surface-card border border-surface-border rounded-xl p-6" open={excluded.size > 0 || names.length === 0}>
+    <details className="bg-surface-card border border-surface-border rounded-xl p-6" open={names.length === 0}>
       <summary className="text-sm font-semibold text-gray-400 uppercase tracking-wider cursor-pointer">
         Repositories in this view: {included} of {names.length}
       </summary>
