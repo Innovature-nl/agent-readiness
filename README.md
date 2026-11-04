@@ -241,9 +241,23 @@ To limit the overview to some repositories, pass `--repos api,web` to `org`, or 
 
 Checks that need a software project (lock file, linter, tests, setup script and similar) are N/A in repositories without a recognized manifest such as package.json, go.mod or composer.json, like docs, infra or deployment repositories. Bundle analysis is N/A without a frontend bundler. N/A checks do not count toward the level, and the dashboard shows the reason on hover.
 
+### Scanning from the dashboard
+
+Start the overview with a GitHub organization to pick repositories in the dashboard instead of scanning them by hand:
+
+```bash
+npx @kodus/agent-readiness org ./readiness-history --profile internal --github-org my-org --scan-ai
+```
+
+The repository search then also lists the organization's repositories that have not been scanned yet. Select them and choose "Scan selected", or rescan the repositories in view. The server makes a shallow clone in `~/.cache/agent-readiness/repos` (change it with `--cache`), scans it with `--github` and the chosen profile, and adds the result to the history; the page updates as each repository finishes. `--scan-ai` adds the AI checks through the local Claude Code CLI (`--ai-provider claude`). It uses your `gh` login, so the dashboard only listens on 127.0.0.1.
+
 ### GitHub settings
 
 Some checks depend on settings that live in GitHub rather than in the repository. Add `--github` to read them with the `gh` CLI (log in with `gh auth login`); the repository comes from the `origin` remote, or pass `--github owner/repo`. Branch protection then follows the rulesets and protection on the default branch, and secret scanning, push protection, Dependabot security updates and code scanning count toward their checks. Without `--github` the scan only looks at files.
+
+### AI checks with Claude Code
+
+`--ai --ai-provider claude` runs the AI checks through the local `claude` CLI and your existing Claude login, so no API key is needed. Each check is a single prompt without tools, settings or MCP servers.
 
 ### Profiles
 

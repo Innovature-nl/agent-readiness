@@ -55,6 +55,8 @@ export interface OrgSummary {
   criteria: CriterionInfo[];
   repos: OrgRepoSummary[];
   trend: Array<{ date: string; orgLevel: number; repoCount: number }>;
+  /** Set when the dashboard can list and scan a GitHub organization. */
+  github?: { org: string; ai: boolean };
 }
 
 export function toSnapshot(report: ReportData, timestamp: Date = new Date()): Snapshot {

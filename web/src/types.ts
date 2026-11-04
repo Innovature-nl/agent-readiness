@@ -107,6 +107,7 @@ export interface OrgSummary {
   criteria: CriterionInfo[];
   repos: OrgRepoSummary[];
   trend: Array<{ date: string; orgLevel: number; repoCount: number }>;
+  github?: { org: string; ai: boolean };
 }
 
 declare global {

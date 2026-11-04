@@ -17,6 +17,8 @@ import { loadConfig, generateDefaultConfig } from "../engine/config.js";
 import { createLLMClient, createClaudeCliClient } from "../engine/llm-client.js";
 import { serializeReport } from "../engine/serializer.js";
 import { startServer, openBrowser } from "../server/index.js";
+import { createScanService } from "../server/scanner.js";
+import os from "node:os";
 import { toSnapshot, saveSnapshot, diffSnapshots, loadHistory, summarizeOrg } from "../engine/history.js";
 import { renderHistoryDiff, renderOrgSummary } from "../renderer/history.js";
 
@@ -287,14 +289,17 @@ export function run(): void {
     .option("--repos <names>", "Comma-separated repositories to include (default: all)")
     .option("--port <n>", "Port for the dashboard (0 picks a free one)", "4747")
     .option("--no-open", "Do not open the browser")
-    .action(async (dir: string, opts: { format: string; web: boolean; profile: string; repos?: string; port: string; open: boolean }) => {
+    .option("--github-org <org>", "Let the dashboard list this GitHub organization and scan repositories from it (uses gh)")
+    .option("--scan-ai", "Include the --ai checks, through the Claude Code CLI, in scans started from the dashboard")
+    .option("--cache <dir>", "Where dashboard scans keep their clones", path.join(os.homedir(), ".cache", "agent-readiness", "repos"))
+    .action(async (dir: string, opts: { format: string; web: boolean; profile: string; repos?: string; port: string; open: boolean; githubOrg?: string; scanAi?: boolean; cache: string }) => {
       const pillars = applyProfile(ALL_PILLARS, parseProfile(opts.profile));
       const wanted = opts.repos ? new Set(opts.repos.split(",").map((r) => r.trim()).filter(Boolean)) : null;
       // Runs again on every page load, so a refresh picks up new scans.
       const load = async () => {
         const history = await loadHistory(path.resolve(dir));
         if (wanted) for (const name of history.keys()) if (!wanted.has(name)) history.delete(name);
-        return summarizeOrg(history, pillars);
+        return { ...summarizeOrg(history, pillars), ...(opts.githubOrg ? { github: { org: opts.githubOrg, ai: Boolean(opts.scanAi) } } : {}) };
       };
       const summary = await load();
       const missing = wanted ? [...wanted].filter((r) => !summary.repos.some((repo) => repo.repoName === r)) : [];
@@ -304,9 +309,18 @@ export function run(): void {
         return;
       }
       renderOrgSummary(summary);
-      if (!opts.web || summary.repos.length === 0) return;
+      if (!opts.web || (summary.repos.length === 0 && !opts.githubOrg)) return;
       try {
-        const { url } = await startServer(load, "__KODUS_ORG_DATA__", Number(opts.port));
+        const scanner = opts.githubOrg
+          ? createScanService({
+              org: opts.githubOrg,
+              historyDir: path.resolve(dir),
+              cacheDir: path.resolve(opts.cache),
+              profile: opts.profile,
+              ai: Boolean(opts.scanAi),
+            })
+          : undefined;
+        const { url } = await startServer(load, "__KODUS_ORG_DATA__", Number(opts.port), scanner);
         console.log(chalk.bold.cyan("  Dashboard: ") + chalk.underline(url));
         console.log(chalk.dim("  Refresh the page to see new scans. Press Ctrl+C to stop the server."));
         if (opts.open) await openBrowser(url);

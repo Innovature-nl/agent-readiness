@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   CartesianGrid,
   Line,
@@ -38,13 +38,29 @@ interface Props {
   data: OrgSummary;
 }
 
-export default function OrgView({ data }: Props) {
+export default function OrgView({ data: initial }: Props) {
+  const [data, setData] = useState(initial);
   const [excluded, setExcluded] = useExcludedRepos();
   const view = useMemo(() => selectRepos(data, (name) => !excluded.has(name)), [data, excluded]);
+  // After a scan from the dashboard, fetch the summary again instead of reloading the page.
+  const refresh = useCallback(() => {
+    fetch("/api/summary")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((next: OrgSummary) => setData(next))
+      .catch(() => {});
+  }, []);
   return (
     <OrgOverview
       data={view}
-      picker={<RepoPicker names={data.repos.map((r) => r.repoName).sort()} excluded={excluded} onChange={setExcluded} />}
+      picker={
+        <RepoPicker
+          names={data.repos.map((r) => r.repoName).sort()}
+          excluded={excluded}
+          onChange={setExcluded}
+          github={data.github}
+          onScanned={refresh}
+        />
+      }
     />
   );
 }
