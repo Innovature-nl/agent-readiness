@@ -86,6 +86,7 @@ export interface OrgRepoSummary {
   percentageDelta: number | null;
   passed: string[];
   failed: string[];
+  skipped: Record<string, string>;
   history: Array<{ date: string; level: MaturityLevel }>;
 }
 

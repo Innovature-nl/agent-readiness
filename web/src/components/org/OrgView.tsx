@@ -135,7 +135,15 @@ function OrgOverview({ data, picker }: Props & { picker: ReactNode }) {
           Each block is one check, ordered by level. The colour shows in how many repositories it passes. Hover a block to see which check it is and how to fix it.
           The organization level is the average repository level, rounded down.
         </Hint>
-        <CriteriaBar criteria={criteria} rate={rate} />
+        <CriteriaBar
+          criteria={criteria}
+          rate={rate}
+          rateLabel={(r, c) => {
+            const s = stats.get(c.id)!;
+            const na = repos.length - s.pass - s.fail;
+            return `Passes in ${s.pass} of ${s.pass + s.fail} repositories (${Math.round(r * 100)}%)${na ? `, N/A in ${na}` : ""}`;
+          }}
+        />
         <Legend />
       </Card>
 

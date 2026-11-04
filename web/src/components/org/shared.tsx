@@ -73,10 +73,13 @@ export function CriteriaBar({
   criteria,
   rate,
   rateLabel = (r) => `passes in ${Math.round(r * 100)}% of repositories`,
+  skipReason = () => "Not evaluated in any repository: it needs --ai, does not apply, or was turned off.",
 }: {
   criteria: CriterionInfo[];
   rate: (c: CriterionInfo) => number | null;
-  rateLabel?: (r: number) => string;
+  rateLabel?: (r: number, c: CriterionInfo) => string;
+  /** Shown instead of the result when the check did not run. */
+  skipReason?: (c: CriterionInfo) => string;
 }) {
   const sorted = sortByLevel(criteria);
   return (
@@ -97,9 +100,9 @@ export function CriteriaBar({
                   <span className="text-sm font-medium text-white">{c.name}</span>
                 </div>
                 <p className={`text-xs mt-1 ${r === null ? "text-gray-500" : r >= THRESHOLD ? "text-pass" : r >= 0.5 ? "text-accent" : "text-fail"}`}>
-                  {r === null ? "Not evaluated" : rateLabel(r)}
+                  {r === null ? skipReason(c) : rateLabel(r, c)}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">{c.fix}</p>
+                {r !== null && <p className="text-xs text-gray-400 mt-1">{c.fix}</p>}
               </div>
             </div>
           );
@@ -125,9 +128,14 @@ export function Legend() {
       <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-pass" /> passes (80%+)</span>
       <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-accent" /> partly (50-79%)</span>
       <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-fail" /> fails (under 50%)</span>
-      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-surface-elevated border border-surface-border" /> not evaluated</span>
+      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-surface-elevated border border-surface-border" /> not evaluated (N/A, hover for why)</span>
     </div>
   );
+}
+
+/** Why a criterion did not run in a repo. Older snapshots carry no reason. */
+export function skipReason(repo: OrgRepoSummary, id: string): string {
+  return repo.skipped?.[id] ?? "Not evaluated: it needs --ai, does not apply here, or was turned off in .kodus-readiness.yml.";
 }
 
 /** Pass state of one criterion in one repo: true, false, or null when skipped. */

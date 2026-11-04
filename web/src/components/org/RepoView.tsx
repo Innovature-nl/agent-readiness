@@ -1,6 +1,6 @@
 import type { MaturityLevel, OrgRepoSummary, OrgSummary } from "../../types";
 import { LEVEL_LABELS } from "../../types";
-import { Card, CriteriaBar, Delta, FixItem, Hint, LevelBadge, Legend, nextLevelPlan, repoResult } from "./shared";
+import { Card, CriteriaBar, Delta, FixItem, Hint, LevelBadge, Legend, nextLevelPlan, repoResult, skipReason } from "./shared";
 
 interface Props {
   data: OrgSummary;
@@ -32,7 +32,7 @@ export default function RepoView({ data, repo, onBack }: Props) {
         <CriteriaBar criteria={data.criteria} rate={(c) => {
           const r = repoResult(repo, c.id);
           return r === null ? null : r ? 1 : 0;
-        }} rateLabel={(r) => (r ? "Passes" : "Fails")} />
+        }} rateLabel={(r) => (r ? "Passes" : "Fails")} skipReason={(c) => skipReason(repo, c.id)} />
         <Legend />
       </Card>
 
@@ -64,7 +64,7 @@ export default function RepoView({ data, repo, onBack }: Props) {
       </Card>
 
       <Card title="All checks">
-        <Hint>N/A means the check did not run: it needs --ai, or it was turned off in .kodus-readiness.yml.</Hint>
+        <Hint>N/A means the check did not run and does not count toward the level. Hover N/A to see why.</Hint>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {data.pillars.map((p) => (
             <div key={p.id}>
@@ -75,12 +75,12 @@ export default function RepoView({ data, repo, onBack }: Props) {
                   .map((c) => {
                     const r = repoResult(repo, c.id);
                     return (
-                      <li key={c.id} className="flex items-center justify-between text-sm" title={c.fix}>
+                      <li key={c.id} className="flex items-center justify-between text-sm" title={r === null ? skipReason(repo, c.id) : c.fix}>
                         <span className="text-gray-300">
                           <span className="text-gray-500 mr-2">L{c.level}</span>
                           {c.name}
                         </span>
-                        <span className={r === null ? "text-gray-500" : r ? "text-pass" : "text-fail"}>
+                        <span className={r === null ? "text-gray-500 underline decoration-dotted cursor-help" : r ? "text-pass" : "text-fail"}>
                           {r === null ? "N/A" : r ? "pass" : "fail"}
                         </span>
                       </li>

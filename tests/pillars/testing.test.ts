@@ -128,6 +128,12 @@ describe("test-script", () => {
     expect(r.pass).toBe(true);
   });
 
+  test("go: go.mod implies go test", async () => {
+    const dir = await make("go-script", { "go.mod": "module example.com/app" });
+    const r = await scriptCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(true);
+  });
+
   test("swift: Package.swift", async () => {
     const dir = await make("swift-script", { "Package.swift": "// swift-tools-version:5.9" });
     const r = await scriptCheck(dir, mockProjectInfo({ detectedTypes: ["swift"] }));

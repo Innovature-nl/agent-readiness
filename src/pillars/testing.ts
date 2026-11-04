@@ -346,6 +346,15 @@ const testing: Pillar = {
           };
         }
 
+        // Go has a built-in test runner, like cargo test for Rust
+        if (await fileExists(repoPath, "go.mod")) {
+          return {
+            criterionId: "test-script",
+            pass: true,
+            message: "go.mod found (provides go test ./...)",
+          };
+        }
+
         // Check for C# .sln or .csproj (implies dotnet test)
         const slnFound = await fileExists(repoPath, "*.sln");
         if (slnFound) {

@@ -237,6 +237,10 @@ The web dashboard explains each part, lists the "biggest wins" (the checks that 
 
 To limit the overview to some repositories, pass `--repos api,web` to `org`, or untick repositories in the dashboard (the choice is saved in your browser).
 
+### Not applicable checks
+
+Checks that need a software project (lock file, linter, tests, setup script and similar) are N/A in repositories without a recognized manifest such as package.json, go.mod or composer.json, like docs, infra or deployment repositories. Bundle analysis is N/A without a frontend bundler. N/A checks do not count toward the level, and the dashboard shows the reason on hover.
+
 ### Profiles
 
 `--profile internal` is meant for private company repositories. It skips `license` and `security-policy`, which only matter for code shared outside the company, and lets `contributing` pass on an AGENTS.md or CLAUDE.md and `editorconfig` pass on a configured formatter. Use the same profile for the scans and for `org`:

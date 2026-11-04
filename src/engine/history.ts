@@ -12,6 +12,8 @@ export interface Snapshot {
   pillarScores: PillarScore[];
   passed: string[];
   failed: string[];
+  /** Why each skipped criterion did not run (needs --ai, not applicable). Missing in older snapshots. */
+  skipped?: Record<string, string>;
 }
 
 export interface SnapshotDiff {
@@ -30,6 +32,7 @@ export interface OrgRepoSummary {
   percentageDelta: number | null;
   passed: string[];
   failed: string[];
+  skipped: Record<string, string>;
   /** Level at the end of each day with a scan, oldest first; lets the dashboard rebuild the trend for any repo selection. */
   history: Array<{ date: string; level: MaturityLevel }>;
 }
@@ -57,9 +60,13 @@ export interface OrgSummary {
 export function toSnapshot(report: ReportData, timestamp: Date = new Date()): Snapshot {
   const passed: string[] = [];
   const failed: string[] = [];
+  const skipped: Record<string, string> = {};
   for (const results of report.results.values()) {
     for (const r of results) {
-      if (r.skipped) continue;
+      if (r.skipped) {
+        skipped[r.criterionId] = r.message;
+        continue;
+      }
       (r.pass ? passed : failed).push(r.criterionId);
     }
   }
@@ -71,6 +78,7 @@ export function toSnapshot(report: ReportData, timestamp: Date = new Date()): Sn
     pillarScores: report.pillarScores,
     passed: passed.sort(),
     failed: failed.sort(),
+    skipped,
   };
 }
 
@@ -140,6 +148,7 @@ export function summarizeOrg(history: Map<string, Snapshot[]>, pillars: Pillar[]
       percentageDelta: previous ? latest.percentage - previous.percentage : null,
       passed: latest.passed,
       failed: latest.failed,
+      skipped: latest.skipped ?? {},
       history: [...new Map(snapshots.map((s) => [s.timestamp.slice(0, 10), s.level])).entries()].map(([date, level]) => ({ date, level })),
     });
   }
