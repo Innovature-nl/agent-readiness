@@ -52,6 +52,10 @@ const security: Pillar = {
       level: 4,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
+        if (_projectInfo.github?.codeScanning) {
+          return { criterionId: "security-scanning", pass: true, message: "GitHub code scanning is configured" };
+        }
+
         // Check CI workflows for security scanning tools
         const ciFiles = await fg(
           [".github/workflows/*.yml", ".github/workflows/*.yaml"],
@@ -201,6 +205,15 @@ const security: Pillar = {
       level: 4,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
+        const ghSecrets = _projectInfo.github;
+        if (ghSecrets?.secretScanning || ghSecrets?.pushProtection) {
+          return {
+            criterionId: "secrets-detection",
+            pass: true,
+            message: `GitHub ${[ghSecrets.secretScanning && "secret scanning", ghSecrets.pushProtection && "push protection"].filter(Boolean).join(" and ")} enabled`,
+          };
+        }
+
         // Check for gitleaks config
         const gitleaksFound = await fileExists(repoPath, ".gitleaks.toml");
         if (gitleaksFound) {
@@ -300,6 +313,10 @@ const security: Pillar = {
       level: 3,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
+        if (_projectInfo.github?.dependabotSecurityUpdates) {
+          return { criterionId: "dep-update-automation", pass: true, message: "Dependabot security updates are enabled on GitHub" };
+        }
+
         const found = await fileExists(
           repoPath,
           ".github/dependabot.yml",

@@ -286,6 +286,13 @@ const ciCd: Pillar = {
       level: 4,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
+        const gh = _projectInfo.github;
+        if (gh) {
+          return gh.branchProtected
+            ? { criterionId: "branch-protection", pass: true, message: `${gh.defaultBranch} is protected on GitHub${gh.branchRules.length ? ` (${gh.branchRules.join(", ")})` : ""}` }
+            : { criterionId: "branch-protection", pass: false, message: `${gh.defaultBranch} has no branch protection or ruleset on GitHub.`, details: "Add a ruleset that requires a pull request and blocks force pushes." };
+        }
+
         // Check for branch protection in .github settings
         const branchProtectionFile = await fileExists(
           repoPath,

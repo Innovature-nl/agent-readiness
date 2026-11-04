@@ -11,6 +11,7 @@ import { calculatePillarScores, calculateLevel } from "../engine/scorer.js";
 import { generateRecommendations } from "../engine/recommender.js";
 import { ALL_PILLARS } from "../pillars/index.js";
 import { applyProfile, parseProfile, PROFILES } from "../pillars/profiles.js";
+import { detectGitHubRepo, fetchGitHubSettings } from "../engine/github.js";
 import { renderReport } from "../renderer/index.js";
 import { loadConfig, generateDefaultConfig } from "../engine/config.js";
 import { createLLMClient } from "../engine/llm-client.js";
@@ -115,6 +116,18 @@ async function main(options: CLIOptions): Promise<void> {
 
     // e. Run detectProject
     const projectInfo = await detectProject(repoPath);
+
+    if (options.github) {
+      spinner.text = "Reading GitHub settings...";
+      const repo = typeof options.github === "string" ? options.github : await detectGitHubRepo(repoPath);
+      try {
+        if (!repo) throw new Error("No GitHub origin remote found; pass --github owner/repo.");
+        projectInfo.github = await fetchGitHubSettings(repo);
+      } catch (err) {
+        spinner.warn(`GitHub settings skipped: ${err instanceof Error ? err.message : String(err)}`);
+        spinner.start("Detecting project type...");
+      }
+    }
 
     // f-g. Create AnalysisEngine with filtered pillars and spinner callbacks
     const engine = new AnalysisEngine(pillars, repoPath, projectInfo, {
@@ -236,6 +249,7 @@ export function run(): void {
     .option("--no-web", "Disable the web dashboard")
     .option("--history <dir>", "Store a snapshot in <dir> and show changes since the last run")
     .option("--profile <name>", `Check set to use (${PROFILES.join(", ")}); internal skips open-source-only checks`, "default")
+    .option("--github [owner/repo]", "Also read branch protection and security settings from GitHub with the gh CLI")
     .action(async (pathArg: string, opts: Record<string, unknown>) => {
       const cliOptions: CLIOptions = {
         path: pathArg,
@@ -251,6 +265,7 @@ export function run(): void {
         web: opts.web !== false,
         history: opts.history as string | undefined,
         profile: parseProfile(opts.profile),
+        github: opts.github as boolean | string | undefined,
       };
 
       await main(cliOptions);

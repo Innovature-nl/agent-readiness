@@ -241,6 +241,10 @@ To limit the overview to some repositories, pass `--repos api,web` to `org`, or 
 
 Checks that need a software project (lock file, linter, tests, setup script and similar) are N/A in repositories without a recognized manifest such as package.json, go.mod or composer.json, like docs, infra or deployment repositories. Bundle analysis is N/A without a frontend bundler. N/A checks do not count toward the level, and the dashboard shows the reason on hover.
 
+### GitHub settings
+
+Some checks depend on settings that live in GitHub rather than in the repository. Add `--github` to read them with the `gh` CLI (log in with `gh auth login`); the repository comes from the `origin` remote, or pass `--github owner/repo`. Branch protection then follows the rulesets and protection on the default branch, and secret scanning, push protection, Dependabot security updates and code scanning count toward their checks. Without `--github` the scan only looks at files.
+
 ### Profiles
 
 `--profile internal` is meant for private company repositories. It skips `license` and `security-policy`, which only matter for code shared outside the company, and lets `contributing` pass on an AGENTS.md or CLAUDE.md and `editorconfig` pass on a configured formatter. Use the same profile for the scans and for `org`:

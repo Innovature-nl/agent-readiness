@@ -14,6 +14,8 @@ export interface ProjectInfo {
   detectedTypes: string[];
   isMonorepo: boolean;
   packages: string[];
+  /** Settings read from GitHub with --github; absent when the scan only looks at files. */
+  github?: import("../engine/github.js").GitHubSettings;
 }
 
 export interface CriterionResult {
@@ -112,6 +114,8 @@ export interface CLIOptions {
   web: boolean;
   history?: string;
   profile: "default" | "internal";
+  /** true: detect owner/repo from the origin remote; a string: that owner/repo. */
+  github?: boolean | string;
 }
 
 export interface RenderOptions {
