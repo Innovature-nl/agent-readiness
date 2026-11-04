@@ -27,6 +27,7 @@ afterEach(async () => {
 const lockFileCheck = getCheck(devEnvironment, "lock-file");
 const versionPinnedCheck = getCheck(devEnvironment, "version-pinned");
 const setupScriptCheck = getCheck(devEnvironment, "setup-script");
+const envDocCheck = getCheck(devEnvironment, "env-documentation");
 
 // ---------------------------------------------------------------------------
 // lock-file
@@ -146,5 +147,29 @@ describe("setup-script", () => {
     const dir = await make("setup-empty");
     const r = await setupScriptCheck(dir, mockProjectInfo());
     expect(r.pass).toBe(false);
+  });
+});
+
+describe("env-documentation", () => {
+  test("finds .env.example in a monorepo service", async () => {
+    const dir = await make("env-mono", { "services/order/.env.example": "DATABASE_URL=" });
+    expect((await envDocCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("accepts committed .env defaults when .env.local is ignored", async () => {
+    const dir = await make("env-dotenv", { ".gitignore": ".env.local\n", "services/order/.env": "DATABASE_URL=postgres://localhost" });
+    expect((await envDocCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("a .env without the .env.local convention does not count", async () => {
+    const dir = await make("env-secret", { ".env": "API_KEY=secret" });
+    expect((await envDocCheck(dir, mockProjectInfo())).pass).toBe(false);
+  });
+});
+
+describe("setup-script in a subdirectory", () => {
+  test("accepts a bootstrap target in dev/Makefile", async () => {
+    const dir = await make("setup-dev-make", { "dev/Makefile": "bootstrap: _check-prereqs\n\tmise install\n" });
+    expect((await setupScriptCheck(dir, mockProjectInfo())).pass).toBe(true);
   });
 });
