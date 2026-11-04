@@ -84,20 +84,6 @@ export default function Dashboard({ data }: Props) {
         pillars={data.pillars}
       />
 
-      {/* Footer */}
-      <div className="text-center py-6 border-t border-surface-border">
-        <p className="text-sm text-gray-500">
-          Powered by{" "}
-          <a
-            href="https://kodus.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent hover:text-accent-light transition-colors"
-          >
-            Kodus
-          </a>
-        </p>
-      </div>
     </div>
   );
 }

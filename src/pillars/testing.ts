@@ -22,13 +22,10 @@ const testing: Pillar = {
       level: 2,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "jest.config.*",
-          "vitest.config.*",
-          "pytest.ini",
-          "conftest.py",
-        );
+        const found =
+          (await fileExists(repoPath, "pytest.ini", "conftest.py")) ??
+          // Per app or package in a monorepo
+          (await fg(["**/{jest,vitest}.config.*"], { cwd: repoPath, deep: 4, ignore: ["**/node_modules/**", "**/vendor/**"] }))[0];
         if (found) {
           return {
             criterionId: "test-framework",
@@ -346,6 +343,15 @@ const testing: Pillar = {
           };
         }
 
+        // Go has a built-in test runner, like cargo test for Rust
+        if (await fileExists(repoPath, "go.mod")) {
+          return {
+            criterionId: "test-script",
+            pass: true,
+            message: "go.mod found (provides go test ./...)",
+          };
+        }
+
         // Check for C# .sln or .csproj (implies dotnet test)
         const slnFound = await fileExists(repoPath, "*.sln");
         if (slnFound) {
@@ -414,28 +420,36 @@ const testing: Pillar = {
           };
         }
 
-        // Check jest config for coverage
-        const jestConfig = await fileExists(repoPath, "jest.config.*");
-        if (jestConfig) {
-          const content = await readFileContent(repoPath, jestConfig);
-          if (content && content.includes("coverage")) {
+        // Coverage switched on where the tests run: go test -coverprofile, vitest/jest --coverage
+        const runners = await fg([".github/workflows/*.{yml,yaml}", ".gitlab-ci.yml", "Makefile", "*/Makefile"], {
+          cwd: repoPath,
+          dot: true,
+          ignore: ["node_modules/**"],
+        });
+        for (const file of runners) {
+          const content = await readFileContent(repoPath, file);
+          if (content && /-coverprofile|-covermode|--coverage\b/.test(content)) {
             return {
               criterionId: "coverage-config",
               pass: true,
-              message: `Coverage configured in ${jestConfig}`,
+              message: `Coverage collected in ${file}`,
             };
           }
         }
 
-        // Check vitest config for coverage
-        const vitestConfig = await fileExists(repoPath, "vitest.config.*");
-        if (vitestConfig) {
-          const content = await readFileContent(repoPath, vitestConfig);
+        // Check jest and vitest configs for coverage, also per package in a monorepo
+        const testConfigs = await fg(["**/{jest,vitest}.config.*"], {
+          cwd: repoPath,
+          deep: 4,
+          ignore: ["**/node_modules/**", "**/vendor/**"],
+        });
+        for (const config of testConfigs) {
+          const content = await readFileContent(repoPath, config);
           if (content && content.includes("coverage")) {
             return {
               criterionId: "coverage-config",
               pass: true,
-              message: `Coverage configured in ${vitestConfig}`,
+              message: `Coverage configured in ${config}`,
             };
           }
         }
@@ -559,14 +573,10 @@ const testing: Pillar = {
       level: 4,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "playwright.config.*",
-          "cypress.config.*",
-          "cypress",
-          "e2e",
-          "tests/e2e",
-          "integration",
+        // Monorepos keep these per app or under a shared test directory (e.g. test/ui-e2e).
+        const [found] = await fg(
+          ["**/playwright.config.*", "**/cypress.config.*", "**/cypress", "**/*e2e", "**/*e2e-*", "**/integration"],
+          { cwd: repoPath, deep: 4, onlyFiles: false, ignore: ["**/node_modules/**", "**/vendor/**", "**/.git/**"] },
         );
         if (found) {
           return {

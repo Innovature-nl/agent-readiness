@@ -128,6 +128,12 @@ describe("test-script", () => {
     expect(r.pass).toBe(true);
   });
 
+  test("go: go.mod implies go test", async () => {
+    const dir = await make("go-script", { "go.mod": "module example.com/app" });
+    const r = await scriptCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(true);
+  });
+
   test("swift: Package.swift", async () => {
     const dir = await make("swift-script", { "Package.swift": "// swift-tools-version:5.9" });
     const r = await scriptCheck(dir, mockProjectInfo({ detectedTypes: ["swift"] }));
@@ -171,5 +177,44 @@ describe("coverage-config", () => {
     const dir = await make("cov-empty");
     const r = await coverageCheck(dir, mockProjectInfo());
     expect(r.pass).toBe(false);
+  });
+});
+
+describe("monorepo layouts", () => {
+  const e2eCheck = getCheck(testing, "e2e-tests");
+  const coverageCheck = getCheck(testing, "coverage-config");
+
+  test("e2e: playwright config under test/ui-e2e", async () => {
+    const dir = await make("e2e-nested", { "test/ui-e2e/playwright.config.ts": "export default {}" });
+    expect((await e2eCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("e2e: an api-e2e directory", async () => {
+    const dir = await make("e2e-dir", { "test/api-e2e/main_test.go": "package main" });
+    expect((await e2eCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("e2e: nothing inside node_modules counts", async () => {
+    const dir = await make("e2e-none", { "node_modules/pkg/playwright.config.js": "" });
+    expect((await e2eCheck(dir, mockProjectInfo())).pass).toBe(false);
+  });
+
+  test("coverage: go test -coverprofile in CI", async () => {
+    const dir = await make("cov-go-ci", { ".github/workflows/go.yml": "run: go test -coverprofile=cover.out ./..." });
+    expect((await coverageCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("coverage: vitest coverage in a package", async () => {
+    const dir = await make("cov-nested", {
+      "frontend/packages/api/vitest.config.mts": "export default { test: { coverage: { provider: 'v8' } } }",
+    });
+    expect((await coverageCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+});
+
+describe("test-framework in a monorepo", () => {
+  test("vitest config in a package counts", async () => {
+    const dir = await make("tf-nested", { "packages/api/vitest.config.mts": "export default {}" });
+    expect((await frameworkCheck(dir, mockProjectInfo({ detectedTypes: ["node"] }))).pass).toBe(true);
   });
 });

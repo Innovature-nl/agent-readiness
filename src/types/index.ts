@@ -14,6 +14,8 @@ export interface ProjectInfo {
   detectedTypes: string[];
   isMonorepo: boolean;
   packages: string[];
+  /** Settings read from GitHub with --github; absent when the scan only looks at files. */
+  github?: import("../engine/github.js").GitHubSettings;
 }
 
 export interface CriterionResult {
@@ -38,6 +40,8 @@ export interface Criterion {
   level: MaturityLevel;
   requiresLLM: boolean;
   check: CriterionCheckFn;
+  /** Extra fix advice added by a profile, such as an alternative that also passes. */
+  profileNote?: string;
 }
 
 export interface Pillar {
@@ -108,6 +112,11 @@ export interface CLIOptions {
   noColor: boolean;
   init: boolean;
   web: boolean;
+  history?: string;
+  profile: "default" | "internal";
+  /** true: detect owner/repo from the origin remote; a string: that owner/repo. */
+  github?: boolean | string;
+  aiProvider?: "openai" | "claude";
 }
 
 export interface RenderOptions {

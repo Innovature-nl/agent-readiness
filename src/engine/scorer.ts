@@ -76,7 +76,9 @@ export function calculateLevel(
     const criteriaAtLevel = byLevel.get(lvl)!;
 
     if (criteriaAtLevel.length === 0) {
-      // If no criteria at this level, consider it passed (vacuous truth)
+      // An empty level counts as passed only on the way to a higher level that has criteria;
+      // otherwise a repo where every top-level check is N/A would reach level 5 for free.
+      if (!levels.some((l) => l > lvl && byLevel.get(l)!.length > 0)) break;
       lastPassedLevel = lvl;
       highestPassed = lvl;
       continue;

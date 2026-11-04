@@ -1,5 +1,6 @@
 import type { ReportData } from "./types";
 import Dashboard from "./components/Dashboard";
+import OrgView from "./components/org/OrgView";
 
 const MOCK_DATA: ReportData = {
   repoName: "example-repo",
@@ -57,7 +58,9 @@ const MOCK_DATA: ReportData = {
 };
 
 function App() {
-  const data: ReportData | undefined = window.__KODUS_REPORT_DATA__ ?? MOCK_DATA;
+  if (window.__AGENT_READINESS_ORG__) return <OrgView data={window.__AGENT_READINESS_ORG__} />;
+
+  const data: ReportData | undefined = window.__AGENT_READINESS_REPORT__ ?? MOCK_DATA;
 
   if (!data) {
     return (

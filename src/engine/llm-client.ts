@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import os from "node:os";
 import type { LLMClient } from "../types/index.js";
 
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
@@ -102,6 +104,59 @@ export function createLLMClient(options: LLMClientOptions): LLMClient {
       };
     }
   };
+
+  return { evaluate };
+}
+
+const RESULT_SCHEMA = JSON.stringify({
+  type: "object",
+  properties: { pass: { type: "boolean" }, message: { type: "string" }, details: { type: "string" } },
+  required: ["pass", "message"],
+});
+
+/**
+ * Runs the evaluation through the local Claude Code CLI (`claude -p`), so it uses the
+ * user's existing Claude login instead of an API key. No tools, settings, hooks or MCP
+ * servers are loaded: the model only sees the criterion and the gathered context.
+ */
+export function createClaudeCliClient(options: { model?: string; bin?: string } = {}): LLMClient {
+  const model = options.model || "sonnet";
+  const bin = options.bin || "claude";
+
+  const evaluate: LLMClient["evaluate"] = (prompt, context) =>
+    new Promise((resolve) => {
+      const child = execFile(
+        bin,
+        [
+          "-p",
+          "--model", model,
+          "--tools", "",
+          "--setting-sources", "",
+          "--strict-mcp-config",
+          "--disable-slash-commands",
+          "--no-session-persistence",
+          "--output-format", "json",
+          "--json-schema", RESULT_SCHEMA,
+          "--system-prompt", SYSTEM_PROMPT,
+        ],
+        // A neutral cwd keeps CLAUDE.md files of the scanned or current repo out of the prompt.
+        { cwd: os.tmpdir(), timeout: 180_000, maxBuffer: 20 * 1024 * 1024 },
+        (error, stdout) => {
+          try {
+            const out = JSON.parse(stdout) as { is_error?: boolean; result?: string; structured_output?: { pass: boolean; message: string; details?: string } };
+            if (out.is_error || !out.structured_output) {
+              resolve({ pass: false, message: `Claude CLI evaluation failed: ${out.result ?? "no structured output"}` });
+              return;
+            }
+            const r = out.structured_output;
+            resolve({ pass: Boolean(r.pass), message: r.message ?? "No message provided", ...(r.details ? { details: r.details } : {}) });
+          } catch {
+            resolve({ pass: false, message: `Claude CLI evaluation failed: ${error?.message ?? "unreadable output"}` });
+          }
+        },
+      );
+      child.stdin?.end(`## Criterion\n${prompt}\n\n## Repository Context\n${context}`);
+    });
 
   return { evaluate };
 }

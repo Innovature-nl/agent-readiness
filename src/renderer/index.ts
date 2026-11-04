@@ -74,7 +74,7 @@ function findPillar(pillars: Pillar[], pillarId: string): Pillar | undefined {
   return pillars.find((p) => p.id === pillarId);
 }
 
-function overallPercentage(pillarScores: PillarScore[]): number {
+export function overallPercentage(pillarScores: PillarScore[]): number {
   if (pillarScores.length === 0) return 0;
   const totalPassed = pillarScores.reduce((sum, s) => sum + s.passed, 0);
   const totalCriteria = pillarScores.reduce((sum, s) => sum + s.total, 0);
@@ -94,7 +94,7 @@ function renderHeader(data: ReportData, ci: boolean): void {
     : "";
 
   if (ci) {
-    console.log("=== KODUS AGENT READINESS ===");
+    console.log("=== AGENT READINESS ===");
     console.log(`Repository: ${data.repoName}`);
     console.log(`Path: ${data.repoPath}`);
     console.log(
@@ -104,7 +104,7 @@ function renderHeader(data: ReportData, ci: boolean): void {
     return;
   }
 
-  const title = chalk.bold.white("KODUS AGENT READINESS");
+  const title = chalk.bold.white("AGENT READINESS");
   const subtitle = chalk.gray(`${data.repoName}  ${chalk.dim(data.repoPath)}`);
   const projectLine =
     chalk.white("Project: ") + chalk.cyan.bold(types) + monorepoTag;
@@ -399,8 +399,6 @@ function renderRecommendations(data: ReportData, ci: boolean): void {
 
 function renderFooter(data: ReportData, ci: boolean): void {
   if (ci) {
-    console.log("---");
-    console.log("Powered by Kodus | https://kodus.io");
     console.log("");
     return;
   }
@@ -422,12 +420,6 @@ function renderFooter(data: ReportData, ci: boolean): void {
     );
   }
 
-  lines.push("");
-  lines.push(
-    chalk.dim("  Powered by ") +
-      chalk.bold.cyan("Kodus") +
-      chalk.dim("  |  https://kodus.io"),
-  );
 
   console.log(lines.join("\n"));
   console.log("");

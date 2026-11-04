@@ -76,19 +76,19 @@ const documentation: Pillar = {
       id: "api-docs",
       name: "API documentation",
       description:
-        "API documentation exists (OpenAPI/Swagger specs, JSDoc/TypeDoc config, docs/api).",
+        "API documentation exists (OpenAPI/Swagger/AsyncAPI specs, .proto contracts, JSDoc/TypeDoc config, docs/api).",
       pillarId: "documentation",
       level: 3,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "openapi.*",
-          "swagger.*",
-          "docs/api*",
-          "jsdoc.json",
-          "typedoc.json",
-        );
+        const found =
+          (await fileExists(repoPath, "docs/api*", "jsdoc.json", "typedoc.json")) ??
+          // API contracts can live per service in a monorepo; .proto files describe gRPC APIs.
+          (await fg(["**/{openapi,swagger,asyncapi}.{json,yaml,yml}", "**/*.proto"], {
+            cwd: repoPath,
+            deep: 6,
+            ignore: ["**/node_modules/**", "**/vendor/**"],
+          }))[0];
         if (found) {
           return {
             criterionId: "api-docs",
@@ -171,7 +171,7 @@ const documentation: Pillar = {
       id: "architecture-docs",
       name: "Architecture documentation",
       description:
-        "Architecture documentation or ADRs exist (docs/architecture, docs/adr, ARCHITECTURE.md).",
+        "Architecture documentation or ADRs exist (docs/architecture, docs/adr, docs/decisions, ARCHITECTURE.md).",
       pillarId: "documentation",
       level: 4,
       requiresLLM: false,
@@ -179,7 +179,8 @@ const documentation: Pillar = {
         const found = await fileExists(
           repoPath,
           "docs/architecture*",
-          "docs/adr/*",
+          "*docs/**/*architecture*.md",
+          "{docs/,}{adr,adrs,decisions}/*.md",
           "ARCHITECTURE.md",
         );
         if (found) {

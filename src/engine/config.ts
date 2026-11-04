@@ -3,12 +3,13 @@ import path from "node:path";
 import YAML from "yaml";
 import type { Config } from "../types/index.js";
 
-const CONFIG_FILENAMES = [".kodus-readiness.yml", ".kodus-readiness.yaml"];
+// The .kodus-* names come from the upstream project and keep working.
+const CONFIG_FILENAMES = [".agent-readiness.yml", ".agent-readiness.yaml", ".kodus-readiness.yml", ".kodus-readiness.yaml"];
 
 /**
- * Loads a Kodus Readiness configuration file from the given repository path.
+ * Loads an Agent Readiness configuration file from the given repository path.
  *
- * Searches for `.kodus-readiness.yml` or `.kodus-readiness.yaml` in the root
+ * Searches for `.agent-readiness.yml` or `.agent-readiness.yaml` (or the older `.kodus-readiness.*`) in the root
  * of `repoPath`. If found, parses the YAML content and returns the resulting
  * Config object. If no config file exists, returns an empty object so callers
  * can safely fall back to defaults. Parse errors are logged as warnings and
@@ -43,13 +44,13 @@ export async function loadConfig(repoPath: string): Promise<Config> {
 
 /**
  * Returns a well-documented YAML template that users can save as
- * `.kodus-readiness.yml` in their repository root.
+ * `.agent-readiness.yml` in their repository root.
  */
 export function generateDefaultConfig(): string {
   return `# ──────────────────────────────────────────────────────────────
-# Kodus Agent-Readiness configuration
+# Agent Readiness configuration
 # Place this file at the root of your repository as
-#   .kodus-readiness.yml   or   .kodus-readiness.yaml
+#   .agent-readiness.yml   or   .agent-readiness.yaml
 # ──────────────────────────────────────────────────────────────
 
 # ── Pillars ──────────────────────────────────────────────────
@@ -130,7 +131,7 @@ thresholds:
 # When AI is enabled, some criteria use an LLM to perform deeper
 # analysis (e.g. reviewing documentation quality).
 # aiEnabled: false
-# apiKey: ""           # Or set KODUS_API_KEY env variable
+# apiKey: ""           # Or set AGENT_READINESS_API_KEY env variable
 # apiBaseUrl: ""       # Custom endpoint for the LLM API
 # model: ""            # LLM model name (default: gpt-5.6-terra)
 `;

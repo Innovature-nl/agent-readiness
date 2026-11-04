@@ -85,3 +85,27 @@ describe("createLLMClient", () => {
     expect(result).toEqual({ pass: false, message: "not good", details: "why" });
   });
 });
+
+describe("createClaudeCliClient", () => {
+  test("reads the structured output of claude -p", async () => {
+    const { createClaudeCliClient } = await import("../../src/engine/llm-client.js");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const bin = path.join(await fs.mkdtemp(path.join(os.tmpdir(), "fake-claude-")), "claude");
+    await fs.writeFile(bin, '#!/bin/sh\ncat >/dev/null\necho \'{"is_error":false,"structured_output":{"pass":true,"message":"ok"}}\'\n', { mode: 0o755 });
+    expect(await createClaudeCliClient({ bin }).evaluate("p", "c")).toEqual({ pass: true, message: "ok" });
+  });
+
+  test("reports a CLI error as a failed evaluation", async () => {
+    const { createClaudeCliClient } = await import("../../src/engine/llm-client.js");
+    const fs = await import("node:fs/promises");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const bin = path.join(await fs.mkdtemp(path.join(os.tmpdir(), "fake-claude-")), "claude");
+    await fs.writeFile(bin, '#!/bin/sh\ncat >/dev/null\necho \'{"is_error":true,"result":"Not logged in"}\'\n', { mode: 0o755 });
+    const r = await createClaudeCliClient({ bin }).evaluate("p", "c");
+    expect(r.pass).toBe(false);
+    expect(r.message).toContain("Not logged in");
+  });
+});

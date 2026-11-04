@@ -4,6 +4,7 @@ import type {
   CriterionResult,
   LLMClient,
 } from "../types/index.js";
+import { notApplicableReason } from "../pillars/applicability.js";
 
 export type OnPillarStart = (pillar: Pillar) => void;
 export type OnPillarComplete = (
@@ -72,6 +73,11 @@ export class AnalysisEngine {
         message: "Requires --ai flag",
         skipped: true,
       };
+    }
+
+    const reason = await notApplicableReason(criterion.id, this.repoPath, this.projectInfo);
+    if (reason) {
+      return { criterionId: criterion.id, pass: false, message: reason, skipped: true };
     }
 
     try {

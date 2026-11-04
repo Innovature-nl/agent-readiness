@@ -99,23 +99,51 @@ const devEnvironment: Pillar = {
       id: "env-documentation",
       name: "Environment variables documented",
       description:
-        "An .env.example, .env.template, or .env.sample file documents required environment variables.",
+        "An .env.example, .env.template, or .env.sample file (or committed .env defaults with .env.local ignored) documents required environment variables.",
       pillarId: "dev-environment",
       level: 2,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          ".env.example",
-          ".env.template",
-          ".env.sample",
-        );
+        // Monorepos keep these per service, so look a few directories deep too.
+        const [found] = await fg(["**/.env.{example,template,sample,dist}"], {
+          cwd: repoPath,
+          dot: true,
+          deep: 4,
+          ignore: ["**/node_modules/**"],
+        });
         if (found) {
           return {
             criterionId: "env-documentation",
             pass: true,
             message: `Environment documentation found: ${found}`,
           };
+        }
+        // A markdown table of variables (| `DATABASE_URL` | ... |) in the README or docs also documents them
+        const docs = await fg(["README.md", "AGENTS.md", "docs/*.md"], { cwd: repoPath });
+        for (const doc of docs) {
+          const content = (await readFileContent(repoPath, doc)) ?? "";
+          const rows = content.match(/^\|\s*`?[A-Z][A-Z0-9_]{2,}`?\s*\|/gm) ?? [];
+          if (rows.length >= 2) {
+            return {
+              criterionId: "env-documentation",
+              pass: true,
+              message: `Environment variables documented in a table in ${doc}`,
+            };
+          }
+        }
+
+        // dotenv convention: a committed .env holds the defaults and .env.local, ignored by git,
+        // holds local overrides and secrets. Without that ignore rule a .env is likely a secret file.
+        const gitignore = (await readFileContent(repoPath, ".gitignore")) ?? "";
+        if (/^\/?\.env\.local\b/m.test(gitignore)) {
+          const [envFile] = await fg(["**/.env"], { cwd: repoPath, dot: true, deep: 4, ignore: ["**/node_modules/**"] });
+          if (envFile) {
+            return {
+              criterionId: "env-documentation",
+              pass: true,
+              message: `Committed defaults found (${envFile}), with .env.local ignored by git`,
+            };
+          }
         }
         return {
           criterionId: "env-documentation",
@@ -135,20 +163,21 @@ const devEnvironment: Pillar = {
       level: 2,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        // Check Makefile for setup or install targets
-        const makefile = await readFileContent(repoPath, "Makefile");
-        if (makefile) {
-          if (/^(setup|install)\s*:/m.test(makefile)) {
+        // Check Makefiles (root or one level down, e.g. dev/Makefile in a monorepo) for setup targets
+        const makefiles = await fg(["Makefile", "*/Makefile"], { cwd: repoPath, ignore: ["node_modules/**"] });
+        for (const file of makefiles) {
+          const makefile = await readFileContent(repoPath, file);
+          if (makefile && /^(setup|install|bootstrap)\s*:/m.test(makefile)) {
             return {
               criterionId: "setup-script",
               pass: true,
-              message: "Setup/install target found in Makefile",
+              message: `Setup target found in ${file}`,
             };
           }
         }
 
-        // Check scripts/setup*
-        const setupScript = await fileExists(repoPath, "scripts/setup*");
+        // Check scripts/setup* and bootstrap scripts
+        const setupScript = await fileExists(repoPath, "scripts/setup*", "scripts/bootstrap*", "bootstrap.sh");
         if (setupScript) {
           return {
             criterionId: "setup-script",
