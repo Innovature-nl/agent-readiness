@@ -55,8 +55,6 @@ Everything runs on your machine. No code leaves it, no account, no subscription.
   </tr>
 </table>
 
-<sub>Screenshots show a scan of six public open-source projects: Hono, Express, Gin, FastAPI, ky and Zod.</sub>
-
 ---
 
 ## Quick start
