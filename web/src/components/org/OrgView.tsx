@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   CartesianGrid,
   Line,
@@ -49,12 +49,31 @@ export default function OrgView({ data }: Props) {
   );
 }
 
-function OrgOverview({ data, picker }: Props & { picker: ReactNode }) {
-  const [selectedRepo, setSelectedRepoState] = useState<string | null>(null);
-  const setSelectedRepo = (name: string | null) => {
-    setSelectedRepoState(name);
+const REPO_PATH = /^\/repo\/([^/]+)\/?$/;
+
+function repoFromLocation(): string | null {
+  const match = REPO_PATH.exec(window.location.pathname);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/** The open repository lives in the URL (/repo/<name>), so a refresh or the back button keeps it. */
+function useRepoRoute(): [string | null, (name: string | null) => void] {
+  const [repo, setRepo] = useState(repoFromLocation);
+  useEffect(() => {
+    const onPop = () => setRepo(repoFromLocation());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const navigate = (name: string | null) => {
+    window.history.pushState(null, "", name ? `/repo/${encodeURIComponent(name)}` : "/");
+    setRepo(name);
     window.scrollTo(0, 0);
   };
+  return [repo, navigate];
+}
+
+function OrgOverview({ data, picker }: Props & { picker: ReactNode }) {
+  const [selectedRepo, setSelectedRepo] = useRepoRoute();
   const [selectedCriterion, setSelectedCriterion] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const { repos, criteria, pillars, trend } = data;
