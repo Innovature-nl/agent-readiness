@@ -14,7 +14,7 @@ import { applyProfile, parseProfile, PROFILES } from "../pillars/profiles.js";
 import { detectGitHubRepo, fetchGitHubSettings } from "../engine/github.js";
 import { renderReport } from "../renderer/index.js";
 import { loadConfig, generateDefaultConfig } from "../engine/config.js";
-import { createLLMClient } from "../engine/llm-client.js";
+import { createLLMClient, createClaudeCliClient } from "../engine/llm-client.js";
 import { serializeReport } from "../engine/serializer.js";
 import { startServer, openBrowser } from "../server/index.js";
 import { toSnapshot, saveSnapshot, diffSnapshots, loadHistory, summarizeOrg } from "../engine/history.js";
@@ -83,16 +83,20 @@ async function main(options: CLIOptions): Promise<void> {
     const apiBaseUrl = options.apiBaseUrl || config.apiBaseUrl;
     const model = options.model || config.model;
 
-    // Create LLM client if AI is enabled
-    const llmClient =
-      aiEnabled && apiKey
-        ? createLLMClient({ apiKey, apiBaseUrl, model })
-        : undefined;
+    // Create LLM client if AI is enabled. The claude provider uses the local Claude Code login.
+    const useClaudeCli = options.aiProvider === "claude";
+    const llmClient = !aiEnabled
+      ? undefined
+      : useClaudeCli
+        ? createClaudeCliClient({ model })
+        : apiKey
+          ? createLLMClient({ apiKey, apiBaseUrl, model })
+          : undefined;
 
-    if (aiEnabled && !apiKey) {
+    if (aiEnabled && !useClaudeCli && !apiKey) {
       console.warn(
         chalk.yellow(
-          "Warning: --ai flag is set but no API key found. Set --api-key, KODUS_API_KEY, or OPENAI_API_KEY env variable.",
+          "Warning: --ai flag is set but no API key found. Set --api-key, KODUS_API_KEY or OPENAI_API_KEY, or use --ai-provider claude.",
         ),
       );
     }
@@ -249,6 +253,7 @@ export function run(): void {
     .option("--no-web", "Disable the web dashboard")
     .option("--history <dir>", "Store a snapshot in <dir> and show changes since the last run")
     .option("--profile <name>", `Check set to use (${PROFILES.join(", ")}); internal skips open-source-only checks`, "default")
+    .option("--ai-provider <name>", "LLM for --ai: openai (OpenAI-compatible API, needs a key) or claude (local Claude Code CLI login)", "openai")
     .option("--github [owner/repo]", "Also read branch protection and security settings from GitHub with the gh CLI")
     .action(async (pathArg: string, opts: Record<string, unknown>) => {
       const cliOptions: CLIOptions = {
@@ -266,6 +271,7 @@ export function run(): void {
         history: opts.history as string | undefined,
         profile: parseProfile(opts.profile),
         github: opts.github as boolean | string | undefined,
+        aiProvider: opts.aiProvider === "claude" ? "claude" : "openai",
       };
 
       await main(cliOptions);

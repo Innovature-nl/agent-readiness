@@ -116,6 +116,7 @@ export interface CLIOptions {
   profile: "default" | "internal";
   /** true: detect owner/repo from the origin remote; a string: that owner/repo. */
   github?: boolean | string;
+  aiProvider?: "openai" | "claude";
 }
 
 export interface RenderOptions {
