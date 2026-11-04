@@ -264,15 +264,20 @@ export function run(): void {
     .option("--no-web", "Disable the web dashboard")
     .option("--profile <name>", `Check set the snapshots were made with (${PROFILES.join(", ")})`, "default")
     .option("--repos <names>", "Comma-separated repositories to include (default: all)")
-    .action(async (dir: string, opts: { format: string; web: boolean; profile: string; repos?: string }) => {
-      const history = await loadHistory(path.resolve(dir));
-      if (opts.repos) {
-        const wanted = new Set(opts.repos.split(",").map((r) => r.trim()).filter(Boolean));
-        for (const name of history.keys()) if (!wanted.has(name)) history.delete(name);
-        const missing = [...wanted].filter((r) => !history.has(r));
-        if (missing.length) console.warn(chalk.yellow(`No snapshots for: ${missing.join(", ")}`));
-      }
-      const summary = summarizeOrg(history, applyProfile(ALL_PILLARS, parseProfile(opts.profile)));
+    .option("--port <n>", "Port for the dashboard (0 picks a free one)", "4747")
+    .option("--no-open", "Do not open the browser")
+    .action(async (dir: string, opts: { format: string; web: boolean; profile: string; repos?: string; port: string; open: boolean }) => {
+      const pillars = applyProfile(ALL_PILLARS, parseProfile(opts.profile));
+      const wanted = opts.repos ? new Set(opts.repos.split(",").map((r) => r.trim()).filter(Boolean)) : null;
+      // Runs again on every page load, so a refresh picks up new scans.
+      const load = async () => {
+        const history = await loadHistory(path.resolve(dir));
+        if (wanted) for (const name of history.keys()) if (!wanted.has(name)) history.delete(name);
+        return summarizeOrg(history, pillars);
+      };
+      const summary = await load();
+      const missing = wanted ? [...wanted].filter((r) => !summary.repos.some((repo) => repo.repoName === r)) : [];
+      if (missing.length) console.warn(chalk.yellow(`No snapshots for: ${missing.join(", ")}`));
       if (opts.format === "json") {
         console.log(JSON.stringify(summary, null, 2));
         return;
@@ -280,14 +285,15 @@ export function run(): void {
       renderOrgSummary(summary);
       if (!opts.web || summary.repos.length === 0) return;
       try {
-        const { url } = await startServer(summary, "__KODUS_ORG_DATA__");
+        const { url } = await startServer(load, "__KODUS_ORG_DATA__", Number(opts.port));
         console.log(chalk.bold.cyan("  Dashboard: ") + chalk.underline(url));
-        console.log(chalk.dim("  Press Ctrl+C to stop the server."));
-        await openBrowser(url);
+        console.log(chalk.dim("  Refresh the page to see new scans. Press Ctrl+C to stop the server."));
+        if (opts.open) await openBrowser(url);
         await new Promise(() => {});
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error(chalk.red(`Failed to start web dashboard: ${msg}`));
+        const inUse = (err as NodeJS.ErrnoException)?.code === "EADDRINUSE";
+        console.error(chalk.red(inUse ? `Port ${opts.port} is in use; a dashboard may already run there, or pass --port.` : `Failed to start web dashboard: ${msg}`));
       }
     });
 

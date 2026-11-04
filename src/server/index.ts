@@ -44,15 +44,20 @@ function getMimeType(filePath: string): string {
   return MIME_TYPES[ext] ?? "application/octet-stream";
 }
 
+type Payload = SerializedReportData | OrgSummary;
+
 /**
  * Starts an HTTP server that serves the pre-built SPA
  * with the report JSON injected into the HTML.
  *
- * Returns the server instance and the URL it's listening on.
+ * `reportData` can be a loader; it then runs on every page load, so a refresh shows new scans.
+ * index.html is read per request too, so a rebuilt dashboard needs no restart.
+ * Port 0 picks a free port.
  */
 export async function startServer(
-  reportData: SerializedReportData | OrgSummary,
+  reportData: Payload | (() => Promise<Payload>),
   globalName: "__KODUS_REPORT_DATA__" | "__KODUS_ORG_DATA__" = "__KODUS_REPORT_DATA__",
+  port = 0,
 ): Promise<{
   server: http.Server;
   url: string;
@@ -66,14 +71,23 @@ export async function startServer(
     );
   }
 
-  const indexHtml = fs.readFileSync(indexPath, "utf-8");
+  const renderIndex = async () => {
+    const data = typeof reportData === "function" ? await reportData() : reportData;
+    return fs
+      .readFileSync(indexPath, "utf-8")
+      .replace("</head>", `<script>window.${globalName} = ${JSON.stringify(data)};</script>\n</head>`);
+  };
 
-  // Inject report data into HTML
-  const jsonPayload = JSON.stringify(reportData);
-  const injectedHtml = indexHtml.replace(
-    "</head>",
-    `<script>window.${globalName} = ${jsonPayload};</script>\n</head>`,
-  );
+  const sendIndex = async (res: http.ServerResponse) => {
+    try {
+      const html = await renderIndex();
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      res.end(html);
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(`Failed to load the dashboard: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
 
   const server = http.createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
@@ -81,8 +95,7 @@ export async function startServer(
 
     // Serve injected index.html for root and SPA fallback
     if (pathname === "/" || pathname === "/index.html") {
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(injectedHtml);
+      void sendIndex(res);
       return;
     }
 
@@ -104,16 +117,15 @@ export async function startServer(
     }
 
     // SPA fallback: serve injected index.html for unknown routes
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(injectedHtml);
+    void sendIndex(res);
   });
 
-  return new Promise((resolve) => {
-    server.listen(0, () => {
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, () => {
       const addr = server.address();
-      const port = typeof addr === "object" && addr ? addr.port : 0;
-      const url = `http://localhost:${port}`;
-      resolve({ server, url });
+      const actual = typeof addr === "object" && addr ? addr.port : 0;
+      resolve({ server, url: `http://localhost:${actual}` });
     });
   });
 }
