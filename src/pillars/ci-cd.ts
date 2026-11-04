@@ -93,7 +93,7 @@ const ciCd: Pillar = {
         }
 
         const testPatterns =
-          /\b(npm\s+test|yarn\s+test|pnpm\s+test|bun\s+test|jest|vitest|pytest|go\s+test|make\s+test|npm\s+run\s+test|gradle\s+test|\.\/gradlew\s+test|gradlew\s+test|gradle\s+check|\.\/gradlew\s+check|mvn\s+test|\.\/mvnw\s+test|mvn\s+verify|\.\/mvnw\s+verify|cargo\s+test|dotnet\s+test|bundle\s+exec\s+r(ake|spec)|phpunit|composer\s+test|swift\s+test)\b/i;
+          /\b((npm|yarn|pnpm|bun)\s+(run\s+)?test|jest|vitest|pytest|go\s+test|make\s+test|gradle\s+test|\.\/gradlew\s+test|gradlew\s+test|gradle\s+check|\.\/gradlew\s+check|mvn\s+test|\.\/mvnw\s+test|mvn\s+verify|\.\/mvnw\s+verify|cargo\s+test|dotnet\s+test|bundle\s+exec\s+r(ake|spec)|phpunit|composer\s+test|swift\s+test)\b/i;
 
         for (const { file, content } of configs) {
           if (testPatterns.test(content)) {
@@ -133,7 +133,7 @@ const ciCd: Pillar = {
         }
 
         const lintPatterns =
-          /\b(npm\s+run\s+lint|yarn\s+lint|pnpm\s+lint|bun\s+run\s+lint|eslint|biome\s+check|biome\s+lint|oxlint|oxfmt|ruff\s+check|ruff\s+lint|golangci-lint|make\s+lint|gradle\s+ktlintCheck|\.\/gradlew\s+ktlintCheck|gradle\s+detekt|\.\/gradlew\s+detekt|gradle\s+ktfmtCheck|\.\/gradlew\s+ktfmtCheck|\.\/gradlew\s+spotlessCheck|gradle\s+spotlessCheck|mvn\s+checkstyle|\.\/mvnw\s+checkstyle|mvn\s+pmd|cargo\s+clippy|cargo\s+fmt\s+--check|dotnet\s+format|rubocop|phpstan|psalm|phpcs|swiftlint)\b/i;
+          /\b((npm|yarn|pnpm|bun)\s+(run\s+)?lint|eslint|biome\s+(check|lint|ci)|go\s+vet|staticcheck|oxlint|oxfmt|ruff\s+check|ruff\s+lint|golangci-lint|make\s+lint|gradle\s+ktlintCheck|\.\/gradlew\s+ktlintCheck|gradle\s+detekt|\.\/gradlew\s+detekt|gradle\s+ktfmtCheck|\.\/gradlew\s+ktfmtCheck|\.\/gradlew\s+spotlessCheck|gradle\s+spotlessCheck|mvn\s+checkstyle|\.\/mvnw\s+checkstyle|mvn\s+pmd|cargo\s+clippy|cargo\s+fmt\s+--check|dotnet\s+format|rubocop|phpstan|psalm|phpcs|swiftlint)\b/i;
 
         for (const { file, content } of configs) {
           if (lintPatterns.test(content)) {
@@ -221,7 +221,7 @@ const ciCd: Pillar = {
       check: async (repoPath, _projectInfo) => {
         const configs = await getCIConfigContents(repoPath);
         const deployPatterns =
-          /\b(deploy|deployment|publish|release|cd\s*:)\b/i;
+          /\b(deploy|deployment|publish|release|cd\s*:|(terraform|tofu)\s+apply)\b/i;
 
         for (const { file, content } of configs) {
           if (deployPatterns.test(content)) {
@@ -253,6 +253,19 @@ const ciCd: Pillar = {
             pass: true,
             message: `Deploy configuration found: ${deployConfig}`,
           };
+        }
+
+        // GitOps: Argo CD applications in the repo are the deployment, pulled by the cluster
+        const manifests = await fg(["**/*.{yaml,yml}"], { cwd: repoPath, deep: 4, ignore: ["**/node_modules/**", ".github/**"] });
+        for (const file of manifests) {
+          const content = await readFileContent(repoPath, file);
+          if (content && /^apiVersion:\s*argoproj\.io\//m.test(content) && /^kind:\s*(Application|ApplicationSet)\s*$/m.test(content)) {
+            return {
+              criterionId: "deploy-pipeline",
+              pass: true,
+              message: `Argo CD application found: ${file}`,
+            };
+          }
         }
 
         return {

@@ -22,13 +22,10 @@ const testing: Pillar = {
       level: 2,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "jest.config.*",
-          "vitest.config.*",
-          "pytest.ini",
-          "conftest.py",
-        );
+        const found =
+          (await fileExists(repoPath, "pytest.ini", "conftest.py")) ??
+          // Per app or package in a monorepo
+          (await fg(["**/{jest,vitest}.config.*"], { cwd: repoPath, deep: 4, ignore: ["**/node_modules/**", "**/vendor/**"] }))[0];
         if (found) {
           return {
             criterionId: "test-framework",

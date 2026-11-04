@@ -224,3 +224,15 @@ describe("type-checker", () => {
     expect(r.pass).toBe(false);
   });
 });
+
+describe("monorepo and built-in tooling", () => {
+  test("go has go vet built in", async () => {
+    const dir = await make("lint-go", { "go.mod": "module x" });
+    expect((await linterCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }))).pass).toBe(true);
+  });
+
+  test("strict tsconfig in an app counts", async () => {
+    const dir = await make("tc-nested", { "apps/cms/tsconfig.json": '{ "compilerOptions": { "strict": true } }' });
+    expect((await typeCheckerCheck(dir, mockProjectInfo({ detectedTypes: ["node"] }))).pass).toBe(true);
+  });
+});

@@ -52,3 +52,10 @@ describe("architecture-docs", () => {
     expect((await archDocs(dir, mockProjectInfo())).pass).toBe(false);
   });
 });
+
+describe("architecture-docs in an agent-docs folder", () => {
+  test("accepts agent-docs/widgets-architecture.md", async () => {
+    const dir = await make("arch-agent-docs", { "agent-docs/widgets-architecture.md": "# Architecture" });
+    expect((await getCheck(documentation, "architecture-docs")(dir, mockProjectInfo())).pass).toBe(true);
+  });
+});

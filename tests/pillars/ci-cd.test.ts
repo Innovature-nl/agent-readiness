@@ -164,3 +164,33 @@ describe("build-automated", () => {
     expect(r.pass).toBe(false);
   });
 });
+
+describe("CI command variants", () => {
+  test("pnpm run test counts as running tests", async () => {
+    const dir = await make("ci-pnpm-run", { ".github/workflows/ci.yml": "steps:\n  - run: pnpm run test\n" });
+    expect((await ciRunsTestsCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("biome ci and go vet count as linting", async () => {
+    const biome = await make("ci-biome", { ".github/workflows/ci.yml": "steps:\n  - run: pnpm biome ci .\n" });
+    expect((await ciRunsLintersCheck(biome, mockProjectInfo())).pass).toBe(true);
+    const vet = await make("ci-vet", { ".github/workflows/ci.yml": "steps:\n  - run: go vet ./...\n" });
+    expect((await ciRunsLintersCheck(vet, mockProjectInfo())).pass).toBe(true);
+  });
+});
+
+describe("deploy-pipeline for infra and GitOps repos", () => {
+  const deployCheck = getCheck(ciCd, "deploy-pipeline");
+
+  test("tofu apply in CI", async () => {
+    const dir = await make("deploy-tofu", { ".github/workflows/infra.yml": "steps:\n  - run: tofu apply plan.tfplan\n" });
+    expect((await deployCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("an Argo CD application manifest", async () => {
+    const dir = await make("deploy-argo", {
+      "platform/apps/app.yaml": "apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: web\n",
+    });
+    expect((await deployCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+});

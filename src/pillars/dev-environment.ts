@@ -118,6 +118,20 @@ const devEnvironment: Pillar = {
             message: `Environment documentation found: ${found}`,
           };
         }
+        // A markdown table of variables (| `DATABASE_URL` | ... |) in the README or docs also documents them
+        const docs = await fg(["README.md", "AGENTS.md", "docs/*.md"], { cwd: repoPath });
+        for (const doc of docs) {
+          const content = (await readFileContent(repoPath, doc)) ?? "";
+          const rows = content.match(/^\|\s*`?[A-Z][A-Z0-9_]{2,}`?\s*\|/gm) ?? [];
+          if (rows.length >= 2) {
+            return {
+              criterionId: "env-documentation",
+              pass: true,
+              message: `Environment variables documented in a table in ${doc}`,
+            };
+          }
+        }
+
         // dotenv convention: a committed .env holds the defaults and .env.local, ignored by git,
         // holds local overrides and secrets. Without that ignore rule a .env is likely a secret file.
         const gitignore = (await readFileContent(repoPath, ".gitignore")) ?? "";

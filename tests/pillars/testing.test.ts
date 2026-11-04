@@ -211,3 +211,10 @@ describe("monorepo layouts", () => {
     expect((await coverageCheck(dir, mockProjectInfo())).pass).toBe(true);
   });
 });
+
+describe("test-framework in a monorepo", () => {
+  test("vitest config in a package counts", async () => {
+    const dir = await make("tf-nested", { "packages/api/vitest.config.mts": "export default {}" });
+    expect((await frameworkCheck(dir, mockProjectInfo({ detectedTypes: ["node"] }))).pass).toBe(true);
+  });
+});

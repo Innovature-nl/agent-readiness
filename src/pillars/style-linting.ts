@@ -151,6 +151,11 @@ const styleLinting: Pillar = {
           return { criterionId: "linter", pass: true, message: "Rust project detected (clippy is built-in via cargo clippy)" };
         }
 
+        // Go ships go vet, like clippy for Rust
+        if (_projectInfo.detectedTypes.includes("go")) {
+          return { criterionId: "linter", pass: true, message: "Go project detected (go vet is built-in)" };
+        }
+
         return {
           criterionId: "linter",
           pass: false,
@@ -354,6 +359,15 @@ const styleLinting: Pillar = {
         for (const [lang, msg] of staticLangs) {
           if (_projectInfo.detectedTypes.includes(lang)) {
             return { criterionId: "type-checker", pass: true, message: msg };
+          }
+        }
+
+        // In a monorepo the strict tsconfig often lives per app or package
+        const nestedTsconfigs = await fg(["*/*/tsconfig*.json", "*/tsconfig*.json"], { cwd: repoPath, ignore: ["**/node_modules/**"] });
+        for (const file of nestedTsconfigs) {
+          const content = await readFileContent(repoPath, file);
+          if (content && /"strict"\s*:\s*true/.test(content)) {
+            return { criterionId: "type-checker", pass: true, message: `TypeScript strict mode in ${file}` };
           }
         }
 

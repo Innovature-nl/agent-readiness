@@ -173,3 +173,10 @@ describe("setup-script in a subdirectory", () => {
     expect((await setupScriptCheck(dir, mockProjectInfo())).pass).toBe(true);
   });
 });
+
+describe("env-documentation in the README", () => {
+  test("a table of variables counts", async () => {
+    const dir = await make("env-table", { "README.md": "| Variable | Meaning |\n|---|---|\n| `APP_MODE` | mode |\n| `APP_URL` | url |\n" });
+    expect((await envDocCheck(dir, mockProjectInfo())).pass).toBe(true);
+  });
+});

@@ -179,7 +179,7 @@ const documentation: Pillar = {
         const found = await fileExists(
           repoPath,
           "docs/architecture*",
-          "docs/**/architecture*.md",
+          "*docs/**/*architecture*.md",
           "{docs/,}{adr,adrs,decisions}/*.md",
           "ARCHITECTURE.md",
         );
