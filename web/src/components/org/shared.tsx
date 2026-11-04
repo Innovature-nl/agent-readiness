@@ -102,7 +102,7 @@ export function CriteriaBar({
                 <p className={`text-xs mt-1 ${r === null ? "text-gray-500" : r >= THRESHOLD ? "text-pass" : r >= 0.5 ? "text-accent" : "text-fail"}`}>
                   {r === null ? skipReason(c) : rateLabel(r, c)}
                 </p>
-                {r !== null && <p className="text-xs text-gray-400 mt-1">{c.fix}</p>}
+                {r !== null && r < 1 && <p className="text-xs text-gray-400 mt-1">{c.fix}</p>}
               </div>
             </div>
           );
