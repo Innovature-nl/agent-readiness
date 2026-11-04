@@ -33,3 +33,22 @@ describe("api-docs", () => {
     expect((await apiDocs(dir, mockProjectInfo())).pass).toBe(false);
   });
 });
+
+describe("architecture-docs", () => {
+  const archDocs = getCheck(documentation, "architecture-docs");
+
+  test("accepts ADRs in docs/decisions", async () => {
+    const dir = await make("arch-decisions", { "docs/decisions/001-message-broker.md": "# ADR" });
+    expect((await archDocs(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("accepts an architecture page deeper in docs", async () => {
+    const dir = await make("arch-guidelines", { "docs/guidelines/architecture.md": "# Architecture" });
+    expect((await archDocs(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("fails without any", async () => {
+    const dir = await make("arch-none", { "docs/setup.md": "# Setup" });
+    expect((await archDocs(dir, mockProjectInfo())).pass).toBe(false);
+  });
+});

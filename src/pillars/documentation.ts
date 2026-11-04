@@ -171,7 +171,7 @@ const documentation: Pillar = {
       id: "architecture-docs",
       name: "Architecture documentation",
       description:
-        "Architecture documentation or ADRs exist (docs/architecture, docs/adr, ARCHITECTURE.md).",
+        "Architecture documentation or ADRs exist (docs/architecture, docs/adr, docs/decisions, ARCHITECTURE.md).",
       pillarId: "documentation",
       level: 4,
       requiresLLM: false,
@@ -179,7 +179,8 @@ const documentation: Pillar = {
         const found = await fileExists(
           repoPath,
           "docs/architecture*",
-          "docs/adr/*",
+          "docs/**/architecture*.md",
+          "{docs/,}{adr,adrs,decisions}/*.md",
           "ARCHITECTURE.md",
         );
         if (found) {
