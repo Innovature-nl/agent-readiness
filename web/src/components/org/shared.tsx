@@ -135,7 +135,7 @@ export function Legend() {
 
 /** Why a criterion did not run in a repo. Older snapshots carry no reason. */
 export function skipReason(repo: OrgRepoSummary, id: string): string {
-  return repo.skipped?.[id] ?? "Not evaluated: it needs --ai, does not apply here, or was turned off in .kodus-readiness.yml.";
+  return repo.skipped?.[id] ?? "Not evaluated: it needs --ai, does not apply here, or was turned off in .agent-readiness.yml.";
 }
 
 /** Pass state of one criterion in one repo: true, false, or null when skipped. */

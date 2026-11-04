@@ -58,9 +58,9 @@ const MOCK_DATA: ReportData = {
 };
 
 function App() {
-  if (window.__KODUS_ORG_DATA__) return <OrgView data={window.__KODUS_ORG_DATA__} />;
+  if (window.__AGENT_READINESS_ORG__) return <OrgView data={window.__AGENT_READINESS_ORG__} />;
 
-  const data: ReportData | undefined = window.__KODUS_REPORT_DATA__ ?? MOCK_DATA;
+  const data: ReportData | undefined = window.__AGENT_READINESS_REPORT__ ?? MOCK_DATA;
 
   if (!data) {
     return (

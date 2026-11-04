@@ -55,7 +55,7 @@ async function main(options: CLIOptions): Promise<void> {
 
     // Handle --init: generate config file and exit
     if (options.init) {
-      const configPath = path.join(repoPath, ".kodus-readiness.yml");
+      const configPath = path.join(repoPath, ".agent-readiness.yml");
       try {
         await fs.access(configPath);
         console.error(
@@ -81,7 +81,7 @@ async function main(options: CLIOptions): Promise<void> {
     // Resolve AI settings: CLI flags override config, env var as fallback
     const aiEnabled = options.ai || config.aiEnabled || false;
     const apiKey =
-      options.apiKey || config.apiKey || process.env.KODUS_API_KEY || process.env.OPENAI_API_KEY;
+      options.apiKey || config.apiKey || process.env.AGENT_READINESS_API_KEY || process.env.KODUS_API_KEY || process.env.OPENAI_API_KEY;
     const apiBaseUrl = options.apiBaseUrl || config.apiBaseUrl;
     const model = options.model || config.model;
 
@@ -98,7 +98,7 @@ async function main(options: CLIOptions): Promise<void> {
     if (aiEnabled && !useClaudeCli && !apiKey) {
       console.warn(
         chalk.yellow(
-          "Warning: --ai flag is set but no API key found. Set --api-key, KODUS_API_KEY or OPENAI_API_KEY, or use --ai-provider claude.",
+          "Warning: --ai flag is set but no API key found. Set --api-key, AGENT_READINESS_API_KEY or OPENAI_API_KEY, or use --ai-provider claude.",
         ),
       );
     }
@@ -239,7 +239,7 @@ export function run(): void {
 
   program
     .enablePositionalOptions()
-    .name("kodus-agent-readiness")
+    .name("agent-readiness")
     .description(description)
     .version(version)
     .argument("[path]", "Path to the repository to evaluate", process.cwd())
@@ -251,7 +251,7 @@ export function run(): void {
     .option("--format <format>", "Output format (text or json)", "text")
     .option("--min-level <n>", "Minimum maturity level to pass (1-5)")
     .option("--no-color", "Disable colored output")
-    .option("--init", "Generate a .kodus-readiness.yml config file", false)
+    .option("--init", "Generate a .agent-readiness.yml config file", false)
     .option("--no-web", "Disable the web dashboard")
     .option("--history <dir>", "Store a snapshot in <dir> and show changes since the last run")
     .option("--profile <name>", `Check set to use (${PROFILES.join(", ")}); internal skips open-source-only checks`, "default")
@@ -320,7 +320,7 @@ export function run(): void {
               ai: Boolean(opts.scanAi),
             })
           : undefined;
-        const { url } = await startServer(load, "__KODUS_ORG_DATA__", Number(opts.port), scanner);
+        const { url } = await startServer(load, "__AGENT_READINESS_ORG__", Number(opts.port), scanner);
         console.log(chalk.bold.cyan("  Dashboard: ") + chalk.underline(url));
         console.log(chalk.dim("  Refresh the page to see new scans. Press Ctrl+C to stop the server."));
         if (opts.open) await openBrowser(url);

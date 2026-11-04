@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
-const STORAGE_KEY = "kodus-org-excluded-repos";
+const STORAGE_KEY = "agent-readiness-excluded-repos";
 const ORG_LIST_LIMIT = 40;
 
 /** Excluded rather than included names, so a newly scanned repository shows up by default. */
 export function useExcludedRepos(): [Set<string>, (next: Set<string>) => void] {
   const [excluded, setState] = useState<Set<string>>(() => {
     try {
-      return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]") as string[]);
+      // Fall back to the key used before the rename, so an existing selection survives.
+      return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("kodus-org-excluded-repos") ?? "[]") as string[]);
     } catch {
       return new Set();
     }
@@ -67,7 +68,6 @@ export default function RepoPicker({ names, excluded, onChange, github, onScanne
       </summary>
       <p className="text-xs text-gray-500 mt-3 mb-3">
         Untick a repository to leave it out of every number on this page. The choice is saved in this browser.
-        {github && ` Search also finds repositories in ${github.org} that have not been scanned yet.`}
       </p>
       <div className="flex flex-wrap items-center gap-3 mb-3 text-xs">
         <input
@@ -209,12 +209,10 @@ function GitHubScan({
         A scan clones the repository, checks it with the GitHub settings{ai ? " and the AI checks (about a minute and a half each)" : ""}, and adds it to this view.
       </p>
       {error && <p className="text-sm text-fail mb-2">{error}</p>}
-      {status && (status.running || status.done.length > 0 || status.failed.length > 0) && (
+      {/* Finished scans show up in the view itself; only progress and failures need a line here. */}
+      {status && (status.running || status.failed.length > 0) && (
         <p className="text-sm text-gray-300 mb-3" role="status">
-          {status.running
-            ? `Scanning ${status.current}${status.queue.length ? `, ${status.queue.length} waiting` : ""}. `
-            : "Scan finished. "}
-          {status.done.length > 0 && `Done: ${status.done.length}. `}
+          {status.running && `Scanning ${status.current}${status.queue.length ? `, ${status.queue.length} waiting` : ""}. `}
           {status.failed.length > 0 && (
             <span className="text-fail">Failed: {status.failed.map((f) => `${f.name} (${f.error})`).join("; ")}</span>
           )}

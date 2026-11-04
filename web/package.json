@@ -1,5 +1,5 @@
 {
-  "name": "kodus-agent-readiness-web",
+  "name": "agent-readiness-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",

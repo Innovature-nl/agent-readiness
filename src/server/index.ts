@@ -57,7 +57,7 @@ type Payload = SerializedReportData | OrgSummary;
  */
 export async function startServer(
   reportData: Payload | (() => Promise<Payload>),
-  globalName: "__KODUS_REPORT_DATA__" | "__KODUS_ORG_DATA__" = "__KODUS_REPORT_DATA__",
+  globalName: "__AGENT_READINESS_REPORT__" | "__AGENT_READINESS_ORG__" = "__AGENT_READINESS_REPORT__",
   port = 0,
   scanner?: ScanService,
 ): Promise<{

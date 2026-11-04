@@ -112,7 +112,7 @@ export interface OrgSummary {
 
 declare global {
   interface Window {
-    __KODUS_REPORT_DATA__?: ReportData;
-    __KODUS_ORG_DATA__?: OrgSummary;
+    __AGENT_READINESS_REPORT__?: ReportData;
+    __AGENT_READINESS_ORG__?: OrgSummary;
   }
 }
