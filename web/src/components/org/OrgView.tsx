@@ -132,7 +132,7 @@ function OrgOverview({ data, picker }: Props & { picker: ReactNode }) {
           <span className="text-sm text-gray-300">{level3Plus}% of repositories at level 3 or higher</span>
         </div>
         <Hint>
-          Each block is one check, ordered by level. The colour shows in how many repositories it passes. Hover a block for its name.
+          Each block is one check, ordered by level. The colour shows in how many repositories it passes. Hover a block to see which check it is and how to fix it.
           The organization level is the average repository level, rounded down.
         </Hint>
         <CriteriaBar criteria={criteria} rate={rate} />
@@ -178,7 +178,7 @@ function OrgOverview({ data, picker }: Props & { picker: ReactNode }) {
               <LineChart data={trend}>
                 <CartesianGrid stroke="#2a2a3a" vertical={false} />
                 <XAxis dataKey="date" tick={{ fill: "#9ca3af", fontSize: 11 }} />
-                <YAxis domain={[0, 5]} allowDecimals={false} tick={{ fill: "#6b7280", fontSize: 11 }} />
+                <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} tick={{ fill: "#6b7280", fontSize: 11 }} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Line type="stepAfter" dataKey="orgLevel" name="Org level" stroke="#f59e0b" strokeWidth={2} dot />
               </LineChart>

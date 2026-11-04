@@ -32,7 +32,7 @@ export default function RepoView({ data, repo, onBack }: Props) {
         <CriteriaBar criteria={data.criteria} rate={(c) => {
           const r = repoResult(repo, c.id);
           return r === null ? null : r ? 1 : 0;
-        }} />
+        }} rateLabel={(r) => (r ? "Passes" : "Fails")} />
         <Legend />
       </Card>
 

@@ -69,19 +69,39 @@ export function sortByLevel(criteria: CriterionInfo[]): CriterionInfo[] {
  * One segment per criterion, ordered by level, coloured by pass rate (null = not evaluated).
  * Mirrors Factory's criteria bar: the level boundaries are marked underneath.
  */
-export function CriteriaBar({ criteria, rate }: { criteria: CriterionInfo[]; rate: (c: CriterionInfo) => number | null }) {
+export function CriteriaBar({
+  criteria,
+  rate,
+  rateLabel = (r) => `passes in ${Math.round(r * 100)}% of repositories`,
+}: {
+  criteria: CriterionInfo[];
+  rate: (c: CriterionInfo) => number | null;
+  rateLabel?: (r: number) => string;
+}) {
   const sorted = sortByLevel(criteria);
   return (
     <div>
       <div className="flex gap-px h-8">
-        {sorted.map((c) => {
+        {sorted.map((c, i) => {
           const r = rate(c);
+          // Keep the tooltip inside the card at both ends of the bar.
+          const align = i < 4 ? "left-0" : i > sorted.length - 5 ? "right-0" : "left-1/2 -translate-x-1/2";
           return (
-            <div
-              key={c.id}
-              className={`flex-1 rounded-sm ${rateClass(r)}`}
-              title={`L${c.level} ${c.name}: ${r === null ? "not evaluated" : `${Math.round(r * 100)}% pass`}`}
-            />
+            <div key={c.id} tabIndex={0} aria-label={c.name} className={`group relative flex-1 rounded-sm outline-none ${rateClass(r)}`}>
+              <div
+                role="tooltip"
+                className={`pointer-events-none absolute bottom-full mb-2 z-20 w-72 hidden group-hover:block group-focus:block ${align} rounded-lg border border-surface-border bg-surface-card p-3 shadow-xl`}
+              >
+                <div className="flex items-center gap-2">
+                  <LevelBadge level={c.level} />
+                  <span className="text-sm font-medium text-white">{c.name}</span>
+                </div>
+                <p className={`text-xs mt-1 ${r === null ? "text-gray-500" : r >= THRESHOLD ? "text-pass" : r >= 0.5 ? "text-accent" : "text-fail"}`}>
+                  {r === null ? "Not evaluated" : rateLabel(r)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">{c.fix}</p>
+              </div>
+            </div>
           );
         })}
       </div>
