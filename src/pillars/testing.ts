@@ -1,4 +1,5 @@
 import type { Pillar } from "../types/index.js";
+import { guardrailTestingCriteria } from "./guardrails.js";
 import {
   fileExists,
   readFileContent,
@@ -644,6 +645,7 @@ const testing: Pillar = {
         ).then((r) => ({ ...r, criterionId: "test-quality" }));
       },
     },
+    ...guardrailTestingCriteria,
   ],
 };
 

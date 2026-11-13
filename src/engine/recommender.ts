@@ -258,6 +258,24 @@ export const CRITERION_INFO: Record<
     reason:
       "High-quality tests give agents confidence that their changes work correctly and don't break existing behavior",
   },
+  "lint-suppressions": {
+    description:
+      "Remove inline lint suppressions by fixing the root cause, and require a reason on the ones that stay",
+    reason:
+      "Agents copy what the codebase does: every suppression is an escape hatch the next agent treats as the local pattern",
+  },
+  "custom-lint-rules": {
+    description:
+      "Turn every correction you give an agent into a lint rule: ban the call or import, with a message that names the right way",
+    reason:
+      "A rule enforces the lesson on every change; a line in AGENTS.md only asks, and an agent can talk itself past it",
+  },
+  "property-or-formal-verification": {
+    description:
+      "Add property-based tests, fuzz tests or a formal model (TLA+, Lean) for the critical invariants",
+    reason:
+      "Agents make these cheap to write; they check an agent's change against invariants instead of only the examples it saw",
+  },
   "naming-conventions": {
     description:
       "Establish and document consistent naming conventions for files, functions, and variables",
@@ -336,6 +354,9 @@ export const EFFORT_MAP: Record<string, Recommendation["effort"]> = {
   "inline-docs-quality": "high",
   "code-structure": "high",
   "file-size": "high",
+  "lint-suppressions": "medium",
+  "custom-lint-rules": "medium",
+  "property-or-formal-verification": "high",
 };
 
 // ---------------------------------------------------------------------------

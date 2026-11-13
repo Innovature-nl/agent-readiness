@@ -77,6 +77,8 @@ criteria:
   type-checker: true
   pre-commit-hooks: true
   editorconfig: true
+  lint-suppressions: true
+  custom-lint-rules: true
 
   # Testing
   test-framework: true
@@ -84,6 +86,7 @@ criteria:
   test-script: true
   coverage-config: true
   e2e-tests: true
+  property-or-formal-verification: true
 
   # Documentation
   readme: true
