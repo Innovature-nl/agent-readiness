@@ -173,7 +173,7 @@ Five checks ask a language model to judge what a file check cannot:
 | `test-quality` | Whether tests are meaningful and cover the key behaviour |
 | `readme-quality` | Whether the README explains purpose, setup, usage and contribution |
 | `docs-agent-friendliness` | Whether the docs help an agent find its way in the codebase |
-| `enforced-agent-rules` | Whether the hard rules in all AGENTS.md and CLAUDE.md files (up to 60,000 characters, root files first) are backed by a hook, lint rule, CI workflow or check script that exists in the repository, and which are not |
+| `enforced-agent-rules` | Whether the hard rules in the agent instruction files are backed by a hook, lint rule, CI workflow or check script that exists in the repository, and which are not. It sends only the rule sentences ("never", "must", "always", "do not" and the like) of every AGENTS.md and CLAUDE.md, in parts of 80,000 characters, at most six, so a large monorepo takes several calls |
 
 **With Claude Code (no API key):**
 
@@ -181,7 +181,7 @@ Five checks ask a language model to judge what a file check cannot:
 agent-readiness . --ai --ai-provider claude
 ```
 
-This runs each check through the local `claude` CLI with your existing login. Every check is a single prompt without tools, settings, hooks or MCP servers, and takes about two minutes per repository in total.
+This runs each check through the local `claude` CLI with your existing login. Every check is a single prompt without tools, settings, hooks or MCP servers, and takes about two minutes per repository in total; a monorepo with many agent instruction files takes longer, because `enforced-agent-rules` then runs in parts.
 
 **With any OpenAI-compatible API:**
 
@@ -407,7 +407,7 @@ The older `.kodus-readiness.yml` name keeps working.
 | `architecture-docs` | 4 | No | ARCHITECTURE.md, architecture pages in any `*docs` folder, ADRs in `adr/` or `decisions/` |
 | `readme-quality` | 5 | Yes | README effectiveness and completeness |
 | `docs-agent-friendliness` | 5 | Yes | Whether docs help AI agents understand the codebase |
-| `enforced-agent-rules` | 5 | Yes | Whether the hard rules in the agent instruction files have an enforcer: the model also sees the repository's hooks, project lint rules, CI workflows and check scripts, and the message says how many files it read |
+| `enforced-agent-rules` | 5 | Yes | Whether the hard rules in all agent instruction files have an enforcer: the model gets their rule sentences plus the repository's hooks, project lint rules, CI workflows and check scripts, and the message says how many rules and files it judged |
 
 ### 🔧 Dev Environment
 

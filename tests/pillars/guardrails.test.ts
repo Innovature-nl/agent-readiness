@@ -154,11 +154,11 @@ describe("enforced-agent-rules", () => {
   });
 
   test("asks the model about the agent instruction files", async () => {
-    const dir = await make("ear-yes", { "AGENTS.md": "| Rule | Enforced by |\n|---|---|\n| no time.Sleep | forbidigo |" });
+    const dir = await make("ear-yes", { "AGENTS.md": "Never use time.Sleep; forbidigo enforces it." });
     const r = await enforced(dir, info, llm(true));
     expect(r.criterionId).toBe("enforced-agent-rules");
     expect(r.pass).toBe(true);
-    expect(r.message).toBe("seen (Read 1 of 1 agent instruction files.)");
+    expect(r.message).toBe("seen (1 hard-rule sentences from 1 of 1 agent instruction files, in 1 pass.)");
   });
 
   test("fails without agent instruction files", async () => {
@@ -231,7 +231,7 @@ describe("enforced-agent-rules: what the model is given", () => {
     const { seen, client } = capture();
     await enforced(dir, info, client);
     expect(seen[0]).toContain("services/s7/CLAUDE.md");
-    expect(seen[0]).toContain("Read 9 of 9 agent instruction files");
+    expect(seen[0]).not.toContain("Root");
   });
 
   test("a root file is not cut at 4,000 characters", async () => {
@@ -241,13 +241,25 @@ describe("enforced-agent-rules: what the model is given", () => {
     expect(seen[0]).toContain("NEVER hand-edit gen/");
   });
 
-  test("files over the budget are named as left out", async () => {
-    const files: Record<string, string> = { "CLAUDE.md": "root" };
-    for (let i = 0; i < 4; i++) files[`pkg${i}/CLAUDE.md`] = "y".repeat(25000);
-    const dir = await make("ear-budget", files);
+  test("a large repository is judged in parts and every file is covered", async () => {
+    const rule = (i: number) => `Never call endpoint number ${i} from a handler directly.`;
+    const files: Record<string, string> = {};
+    for (let f = 0; f < 3; f++) files[`svc${f}/CLAUDE.md`] = Array.from({ length: 800 }, (_, i) => rule(i)).join("\n");
+    const dir = await make("ear-parts", files);
+    const { seen, client } = capture();
+    const r = await enforced(dir, info, client);
+    expect(seen.length).toBeGreaterThan(1);
+    expect(seen.join("\n")).toContain("svc2/CLAUDE.md");
+    expect(r.message).toContain("parts pass");
+    expect(r.message).toContain("from 3 of 3 agent instruction files");
+  });
+
+  test("only rule sentences go in, not descriptions", async () => {
+    const dir = await make("ear-rules-only", { "CLAUDE.md": "The service listens on port 80.\nNever expose port 81." });
     const { seen, client } = capture();
     await enforced(dir, info, client);
-    expect(seen[0]).toMatch(/Read \d of 5 agent instruction files; left out for size: pkg/);
+    expect(seen[0]).toContain("Never expose port 81.");
+    expect(seen[0]).not.toContain("listens on port 80");
   });
 
   test("the enforcers that exist go in: hooks, lint rules, CI jobs and check scripts", async () => {
