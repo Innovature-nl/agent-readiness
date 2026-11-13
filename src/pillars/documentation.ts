@@ -1,4 +1,5 @@
 import type { Pillar } from "../types/index.js";
+import { guardrailDocumentationCriteria } from "./guardrails.js";
 import { fileExists, readFileContent } from "./utils.js";
 import fg from "fast-glob";
 
@@ -275,6 +276,7 @@ const documentation: Pillar = {
         ).then((r) => ({ ...r, criterionId: "docs-agent-friendliness" }));
       },
     },
+    ...guardrailDocumentationCriteria,
   ],
 };
 

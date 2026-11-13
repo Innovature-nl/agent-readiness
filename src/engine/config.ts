@@ -86,6 +86,7 @@ criteria:
   test-script: true
   coverage-config: true
   e2e-tests: true
+  runtime-verification: true
   property-or-formal-verification: true
 
   # Documentation
@@ -94,6 +95,7 @@ criteria:
   api-docs: true
   codeowners: true
   ai-context: true
+  enforced-agent-rules: true
   architecture-docs: true
 
   # Dev Environment

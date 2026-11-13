@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/checks-42-f59e0b.svg" alt="42 checks">
+  <img src="https://img.shields.io/badge/checks-44-f59e0b.svg" alt="44 checks">
   <img src="https://img.shields.io/badge/languages-10%2B-f59e0b.svg" alt="10+ languages">
   <img src="https://img.shields.io/badge/runs-locally-22c55e.svg" alt="Runs locally">
   <img src="https://img.shields.io/badge/built%20with-Bun%20%2B%20TypeScript-ef4444.svg" alt="Built with Bun and TypeScript">
@@ -36,7 +36,7 @@ Everything runs on your machine. No code leaves it, no account, no subscription.
 | **History and trends** | Every scan is a snapshot. See the organization level over time and what changed since the last scan. |
 | **Fair to every kind of repo** | Docs, infra and GitOps repositories get N/A for code-only checks, monorepos are searched per service, and the reason shows on hover. |
 | **Reads GitHub itself** | With `--github`, branch protection, secret scanning, push protection and Dependabot come from the real GitHub settings. |
-| **AI checks without an API key** | The four AI checks can run through your local Claude Code login. |
+| **AI checks without an API key** | The five AI checks can run through your local Claude Code login. |
 | **Built for company repos** | `--profile internal` drops open-source-only checks such as LICENSE and SECURITY.md. |
 | **CI gate** | `--ci --min-level 3` fails a build that drops below the level you want. |
 
@@ -132,8 +132,8 @@ A repository reaches a level when **80% of that level's checks pass and every le
 | Pillar | What it covers |
 |---|---|
 | 🎨 **Style & Linting** | Linter, formatter, type checker, pre-commit hooks, editorconfig, lint suppressions, project-specific lint rules, naming conventions |
-| 🧪 **Testing** | Test framework, test files, test script, coverage, end-to-end tests, property-based, fuzz or formal verification, test quality |
-| 📚 **Documentation** | README, contributing guide, API docs, CODEOWNERS, AI context files, architecture docs |
+| 🧪 **Testing** | Test framework, test files, test script, coverage, end-to-end tests, runtime verification skill, property-based, fuzz or formal verification, test quality |
+| 📚 **Documentation** | README, contributing guide, API docs, CODEOWNERS, AI context files, architecture docs, enforced agent rules |
 | 🔧 **Dev Environment** | Lock file, containers, environment variables, setup command, pinned runtime versions |
 | ⚙️ **CI/CD** | CI config, tests and linters in CI, automated build, deploy pipeline, branch protection |
 | 💚 **Code Health** | Dependency freshness, dead code detection, bundle analysis |
@@ -165,7 +165,7 @@ Without `--github` the scan only looks at files. If GitHub cannot be read, the s
 
 ## AI checks
 
-Four checks ask a language model to judge what a file check cannot:
+Five checks ask a language model to judge what a file check cannot:
 
 | Check | What it judges |
 |---|---|
@@ -173,6 +173,7 @@ Four checks ask a language model to judge what a file check cannot:
 | `test-quality` | Whether tests are meaningful and cover the key behaviour |
 | `readme-quality` | Whether the README explains purpose, setup, usage and contribution |
 | `docs-agent-friendliness` | Whether the docs help an agent find its way in the codebase |
+| `enforced-agent-rules` | Whether the hard rules in AGENTS.md or CLAUDE.md are backed by a lint, type, test or hook, and which are not |
 
 **With Claude Code (no API key):**
 
@@ -259,6 +260,7 @@ criteria:
   test-script: true
   coverage-config: true
   e2e-tests: true
+  runtime-verification: true
   property-or-formal-verification: true
   test-quality: true
 
@@ -268,6 +270,7 @@ criteria:
   api-docs: true
   codeowners: true
   ai-context: true
+  enforced-agent-rules: true
   architecture-docs: true
   readme-quality: true
   docs-agent-friendliness: true
@@ -362,7 +365,7 @@ The older `.kodus-readiness.yml` name keeps working.
 ## All 39 checks
 
 <details>
-<summary><strong>View all 42 criteria across 7 pillars</strong></summary>
+<summary><strong>View all 44 criteria across 7 pillars</strong></summary>
 
 ### 🎨 Style & Linting
 
@@ -373,7 +376,7 @@ The older `.kodus-readiness.yml` name keeps working.
 | `formatter` | 2 | No | Prettier, Biome, Black, Ruff, gofmt, ktlint, ktfmt, Spotless, google-java-format, rustfmt, dotnet format (built-in), RuboCop, PHP-CS-Fixer, SwiftFormat |
 | `type-checker` | 3 | No | TypeScript strict (also per app or package), mypy, pyright, Kotlin/Go/Java/Rust/C#/Swift (built-in static types) |
 | `pre-commit-hooks` | 3 | No | Husky, Lefthook, pre-commit, lint-staged |
-| `lint-suppressions` | 3 | No | At most 1 inline suppression (`eslint-disable`, `biome-ignore`, `//nolint`, `# noqa`, `@ts-ignore`, `@SuppressWarnings` and the like) per 1,000 lines |
+| `lint-suppressions` | 3 | No | At most 1 inline suppression without a reason on the same line (`eslint-disable`, `biome-ignore`, `//nolint`, `# noqa`, `@ts-ignore`, `@SuppressWarnings` and the like) per 1,000 lines |
 | `custom-lint-rules` | 4 | No | Project rules in the linter config: forbidigo, depguard, ruleguard, `no-restricted-*`, Biome `noRestricted*` or GritQL plugins, ruff `banned-api`, phpstan disallowed calls, detekt `Forbidden*`, Semgrep rules |
 | `naming-conventions` | 5 | Yes | File/function naming patterns and consistency |
 
@@ -385,6 +388,7 @@ The older `.kodus-readiness.yml` name keeps working.
 | `test-files-exist` | 2 | No | `*.test.*`, `*.spec.*`, `test_*.py`, `*_test.go`, `*Test.kt`, `*Test.java`, `tests/*.rs`, `*Test.cs`, `*_spec.rb`, `*Test.php`, `*Tests.swift` |
 | `test-script` | 2 | No | package.json, Makefile, Gradle, Maven, Cargo, go test (built-in), dotnet test, Rakefile, composer.json, swift test |
 | `coverage-config` | 4 | No | nyc, Jest, Vitest (also per package), .coveragerc, JaCoCo, Kover, tarpaulin, cargo-llvm-cov, Coverlet, SimpleCov, PHPUnit coverage, `go test -coverprofile` or `--coverage` in CI |
+| `runtime-verification` | 4 | No | A verification skill (`.claude/skills/verify-*`, `.cursor/skills/verify-*` and similar, also nested) that drives the real app; the message says whether it has a feature map |
 | `e2e-tests` | 4 | No | Playwright, Cypress, `*e2e*` and integration directories, also nested (`test/ui-e2e`) |
 | `property-or-formal-verification` | 5 | No | fast-check, Hypothesis, rapid, gopter, proptest, jqwik, kotest-property, FsCheck, Go `func Fuzz*` or `testing/quick`, cargo-fuzz, TLA+, Alloy, Dafny, Lean |
 | `test-quality` | 5 | Yes | Test meaningfulness and coverage of key functionality |
@@ -401,6 +405,7 @@ The older `.kodus-readiness.yml` name keeps working.
 | `architecture-docs` | 4 | No | ARCHITECTURE.md, architecture pages in any `*docs` folder, ADRs in `adr/` or `decisions/` |
 | `readme-quality` | 5 | Yes | README effectiveness and completeness |
 | `docs-agent-friendliness` | 5 | Yes | Whether docs help AI agents understand the codebase |
+| `enforced-agent-rules` | 5 | Yes | Whether the hard rules in the agent instruction files name what enforces them |
 
 ### 🔧 Dev Environment
 
