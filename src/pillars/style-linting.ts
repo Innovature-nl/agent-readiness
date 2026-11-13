@@ -472,6 +472,25 @@ const styleLinting: Pillar = {
           };
         }
 
+        // Repositories that install their own git hooks: an install script, or a Makefile that
+        // points git at a hooks directory or writes into .git/hooks.
+        const [installer] = await fg(["**/*install*hook*.{sh,bash,py}", ".githooks/*"], {
+          cwd: repoPath,
+          ignore: ["**/node_modules/**", "**/vendor/**", "**/.git/**"],
+          dot: true,
+          deep: 4,
+        });
+        if (installer) {
+          return { criterionId: "pre-commit-hooks", pass: true, message: `Git hooks installed by ${installer}` };
+        }
+        const makefiles = await fg(["**/Makefile", "**/*.mk"], { cwd: repoPath, ignore: ["**/node_modules/**", "**/vendor/**"], deep: 3 });
+        for (const mf of makefiles) {
+          const text = await readFileContent(repoPath, mf);
+          if (text && /core\.hooksPath|\.git\/hooks/.test(text)) {
+            return { criterionId: "pre-commit-hooks", pass: true, message: `Git hooks set up in ${mf}` };
+          }
+        }
+
         return {
           criterionId: "pre-commit-hooks",
           pass: false,

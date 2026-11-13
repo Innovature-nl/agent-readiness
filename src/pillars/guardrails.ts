@@ -202,11 +202,70 @@ const runtimeVerification: Criterion = {
 
 const AGENT_FILES = ["AGENTS.md", "CLAUDE.md", ".cursorrules", ".github/copilot-instructions.md", "**/AGENTS.md", "**/CLAUDE.md", ".cursor/rules/**/*.{md,mdc}"];
 
+/** Characters of agent instruction files the model reads; a file that does not fit whole is left out by name. */
+export const AGENT_FILES_BUDGET = 60_000;
+const ENFORCERS_BUDGET = 15_000;
+
+const HOOK_FILES = [".claude/hooks/**/*", ".husky/*", ".githooks/*", "lefthook.yml", ".lefthook.yml", ".pre-commit-config.yaml", "**/*install*hook*.{sh,bash,py}"];
+const LINT_CONFIGS = ["**/.golangci.{yml,yaml,toml,json}", "**/{eslint.config.*,.eslintrc,.eslintrc.*}", "**/biome.{json,jsonc}", "**/{pyproject.toml,ruff.toml,.ruff.toml}", "**/.semgrep.{yml,yaml}", "**/.semgrep/**/*.{yml,yaml}"];
+const LINT_RULE_LINE = /pattern:|msg:|no-restricted|noRestricted|banned-api|depguard|forbidigo|ruleguard|message:/;
+const CI_FILES = [".github/workflows/*.{yml,yaml}", ".gitlab-ci.yml", ".circleci/config.yml"];
+const CHECK_SCRIPTS = ["**/{check,verify,lint,guard,assert}-*.{sh,py,pl,ts,js,go}", "**/*-guard.{sh,py,pl,ts,js}"];
+
+/**
+ * Picks agent instruction files for the model: root files first, then the shortest, so as many
+ * files as possible fit in the budget. Returns the text to send and a line saying what was read.
+ */
+async function agentFilesContext(repoPath: string): Promise<{ text: string; coverage: string } | null> {
+  const files = [...new Set(await fg(AGENT_FILES, { cwd: repoPath, ignore: IGNORE, dot: true, deep: 8 }))];
+  if (files.length === 0) return null;
+  const texts = await readAll(repoPath, files);
+  const order = files
+    .map((f, i) => ({ f, text: texts[i] }))
+    .sort((a, b) => Number(a.f.includes("/")) - Number(b.f.includes("/")) || a.text.length - b.text.length);
+  let used = 0;
+  const parts: string[] = [];
+  const left: string[] = [];
+  for (const { f, text } of order) {
+    if (used + text.length > AGENT_FILES_BUDGET && parts.length > 0) {
+      left.push(f);
+      continue;
+    }
+    const kept = text.slice(0, AGENT_FILES_BUDGET);
+    parts.push(`--- ${f} ---\n${kept}`);
+    used += kept.length;
+  }
+  const coverage =
+    `Read ${parts.length} of ${files.length} agent instruction files` + (left.length > 0 ? `; left out for size: ${left.join(", ")}` : "") + ".";
+  return { text: parts.join("\n\n"), coverage };
+}
+
+/** Lists what exists to enforce a rule: hooks, project lint rules, CI workflows and check scripts. */
+async function enforcersContext(repoPath: string): Promise<string> {
+  const glob = (patterns: string[], deep: number) => fg(patterns, { cwd: repoPath, ignore: IGNORE, dot: true, deep, onlyFiles: true });
+  const hooks = await glob(HOOK_FILES, 5);
+  const configs = await glob(LINT_CONFIGS, 4);
+  const rules: string[] = [];
+  for (const [i, text] of (await readAll(repoPath, configs)).entries()) {
+    const lines = text.split("\n").map((l) => l.trim()).filter((l) => LINT_RULE_LINE.test(l));
+    if (lines.length > 0) rules.push(`${configs[i]}:\n${lines.join("\n")}`);
+  }
+  const ci = await glob(CI_FILES, 3);
+  const scripts = await glob(CHECK_SCRIPTS, 6);
+  const out = [
+    `Hooks:\n${hooks.join("\n") || "(none)"}`,
+    `Project lint rules:\n${rules.join("\n") || "(none)"}`,
+    `CI workflows:\n${ci.join("\n") || "(none)"}`,
+    `Check scripts:\n${scripts.join("\n") || "(none)"}`,
+  ].join("\n\n");
+  return out.slice(0, ENFORCERS_BUDGET);
+}
+
 const enforcedAgentRules: Criterion = {
   id: "enforced-agent-rules",
   name: "Agent rules are enforced (AI)",
   description:
-    "The rules in the agent instruction files are backed by something that fails (a lint, a type, a test, a hook), and the files say what enforces each rule.",
+    "The hard rules in the agent instruction files are backed by something that fails (a lint rule, a type, a test, a hook, a CI check).",
   pillarId: "documentation",
   level: 5,
   requiresLLM: true,
@@ -214,17 +273,16 @@ const enforcedAgentRules: Criterion = {
     if (!llmClient) {
       return { criterionId: "enforced-agent-rules", pass: false, message: "Unable to evaluate agent rules." };
     }
-    const files = [...new Set(await fg(AGENT_FILES, { cwd: repoPath, ignore: IGNORE, dot: true, deep: 4 }))];
-    if (files.length === 0) {
+    const agent = await agentFilesContext(repoPath);
+    if (!agent) {
       return { criterionId: "enforced-agent-rules", pass: false, message: "No agent instruction files to evaluate." };
     }
-    const texts = await readAll(repoPath, files.slice(0, 5));
-    const snippets = files.slice(0, 5).map((f, i) => `--- ${f} ---\n${texts[i].slice(0, 4000)}`);
+    const enforcers = await enforcersContext(repoPath);
     const r = await llmClient.evaluate(
-      "Evaluate whether the rules in these agent instruction files are enforced. Pass when the hard rules (things an agent must or must not do) each name what enforces them, such as a lint rule, a type, a test, a hook or a CI check, for example in a table of rule and enforcement, and when the remaining prose is limited to judgment calls a check cannot make. Fail when the files are mostly unenforced must/never rules that nothing would catch if an agent ignored them. In the details, list the hard rules that nothing enforces.",
-      snippets.join("\n\n"),
+      "Evaluate whether the hard rules (things an agent must or must not do) in these agent instruction files are enforced. A rule counts as enforced when the files name what enforces it, or when an item in the ENFORCERS section plausibly enforces it (a hook, a project lint rule, a CI workflow or a check script with a matching name or pattern). Pass when nearly all hard rules are enforced and the remaining prose is judgment a check cannot make. Fail when many hard rules have no enforcer at all. In the details, list the hard rules with no enforcer, then separately the ones that are enforced but whose instruction does not say by what. Judge only the files you were given; the coverage line says which were left out.",
+      `${agent.coverage}\n\n${agent.text}\n\n=== ENFORCERS ===\n${enforcers}`,
     );
-    return { ...r, criterionId: "enforced-agent-rules" };
+    return { ...r, message: `${r.message} (${agent.coverage})`, criterionId: "enforced-agent-rules" };
   },
 };
 

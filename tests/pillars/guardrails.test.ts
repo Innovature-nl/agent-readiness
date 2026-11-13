@@ -158,7 +158,7 @@ describe("enforced-agent-rules", () => {
     const r = await enforced(dir, info, llm(true));
     expect(r.criterionId).toBe("enforced-agent-rules");
     expect(r.pass).toBe(true);
-    expect(r.message).toBe("seen");
+    expect(r.message).toBe("seen (Read 1 of 1 agent instruction files.)");
   });
 
   test("fails without agent instruction files", async () => {
@@ -214,5 +214,54 @@ describe("workaround-comments", () => {
   test("does not count words in code", async () => {
     const dir = await make("wc-code", { "x.ts": `const forNow = workaround(hack);\n${lines(10)}` });
     expect((await workaround(dir, info)).pass).toBe(true);
+  });
+});
+
+describe("enforced-agent-rules: what the model is given", () => {
+  const capture = () => {
+    const seen: string[] = [];
+    const client: LLMClient = { evaluate: async (_q: string, ctx: string) => { seen.push(ctx); return { pass: true, message: "ok" }; } };
+    return { seen, client };
+  };
+
+  test("every agent file in the budget goes in, with a coverage line", async () => {
+    const files: Record<string, string> = { "CLAUDE.md": "# Root\nNever push to main." };
+    for (let i = 0; i < 8; i++) files[`services/s${i}/CLAUDE.md`] = `Rule ${i}: never call service ${i} directly.`;
+    const dir = await make("ear-all", files);
+    const { seen, client } = capture();
+    await enforced(dir, info, client);
+    expect(seen[0]).toContain("services/s7/CLAUDE.md");
+    expect(seen[0]).toContain("Read 9 of 9 agent instruction files");
+  });
+
+  test("a root file is not cut at 4,000 characters", async () => {
+    const dir = await make("ear-long", { "CLAUDE.md": `${"x".repeat(9000)}\nNEVER hand-edit gen/` });
+    const { seen, client } = capture();
+    await enforced(dir, info, client);
+    expect(seen[0]).toContain("NEVER hand-edit gen/");
+  });
+
+  test("files over the budget are named as left out", async () => {
+    const files: Record<string, string> = { "CLAUDE.md": "root" };
+    for (let i = 0; i < 4; i++) files[`pkg${i}/CLAUDE.md`] = "y".repeat(25000);
+    const dir = await make("ear-budget", files);
+    const { seen, client } = capture();
+    await enforced(dir, info, client);
+    expect(seen[0]).toMatch(/Read \d of 5 agent instruction files; left out for size: pkg/);
+  });
+
+  test("the enforcers that exist go in: hooks, lint rules, CI jobs and check scripts", async () => {
+    const dir = await make("ear-enforcers", {
+      "CLAUDE.md": "Never use time.Sleep.",
+      ".claude/hooks/go-post-edit.sh": "#!/bin/sh",
+      ".golangci.yml": "linters:\n  settings:\n    forbidigo:\n      forbid:\n        - pattern: '^time\\.Sleep$'\n          msg: 'use a ticker'\n",
+      ".github/workflows/go.yml": "name: go\njobs:\n  test:\n    runs-on: x\n",
+      "qa/scripts/check-test-sleeps.py": "print(1)",
+    });
+    const { seen, client } = capture();
+    await enforced(dir, info, client);
+    for (const want of [".claude/hooks/go-post-edit.sh", "^time\\.Sleep$", ".github/workflows/go.yml", "qa/scripts/check-test-sleeps.py"]) {
+      expect(seen[0]).toContain(want);
+    }
   });
 });

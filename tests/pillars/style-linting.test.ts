@@ -236,3 +236,24 @@ describe("monorepo and built-in tooling", () => {
     expect((await typeCheckerCheck(dir, mockProjectInfo({ detectedTypes: ["node"] }))).pass).toBe(true);
   });
 });
+
+describe("pre-commit-hooks: repositories that install their own hooks", () => {
+  const hooks = getCheck(styleLinting, "pre-commit-hooks");
+
+  test("an install script for git hooks passes", async () => {
+    const dir = await make("hooks-script", { "dev/scripts/install-git-hooks.sh": "#!/bin/sh\ninstall_hook pre-push" });
+    const r = await hooks(dir, mockProjectInfo());
+    expect(r.pass).toBe(true);
+    expect(r.message).toContain("install-git-hooks.sh");
+  });
+
+  test("a Makefile that sets core.hooksPath passes", async () => {
+    const dir = await make("hooks-make", { Makefile: "setup:\n\tgit config core.hooksPath .githooks\n" });
+    expect((await hooks(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("a Makefile without hooks still fails", async () => {
+    const dir = await make("hooks-none", { Makefile: "build:\n\tgo build ./...\n" });
+    expect((await hooks(dir, mockProjectInfo())).pass).toBe(false);
+  });
+});
