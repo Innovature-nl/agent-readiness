@@ -1,3 +1,4 @@
+import { renderMarkdown } from "../renderer/markdown.js";
 import path from "node:path";
 import fs from "node:fs";
 import http from "node:http";
@@ -99,6 +100,17 @@ export async function startServer(
   const handleApi = async (req: http.IncomingMessage, res: http.ServerResponse, pathname: string) => {
     if (pathname === "/api/summary" && req.method === "GET") {
       return sendJson(res, 200, typeof reportData === "function" ? await reportData() : reportData);
+    }
+    if (pathname === "/api/report.md" && req.method === "GET") {
+      const data = typeof reportData === "function" ? await reportData() : reportData;
+      if (!("repoName" in data)) return sendJson(res, 404, { error: "Markdown is available for a single repository report." });
+      res.writeHead(200, {
+        "Content-Type": "text/markdown; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${data.repoName}-agent-readiness.md"`,
+        "Cache-Control": "no-store",
+      });
+      res.end(renderMarkdown(data));
+      return;
     }
     if (!scanner) return sendJson(res, 404, { error: "Start the dashboard with --github-org to scan from it." });
     if (pathname === "/api/github/repos" && req.method === "GET") {

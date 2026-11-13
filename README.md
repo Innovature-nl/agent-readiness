@@ -76,6 +76,7 @@ agent-readiness /path/to/repo                       # report in the terminal plu
 agent-readiness /path/to/repo --github              # also read the GitHub settings (uses gh)
 agent-readiness /path/to/repo --ai --ai-provider claude   # add the AI checks through Claude Code
 agent-readiness /path/to/repo --format json         # for scripts and integrations
+agent-readiness /path/to/repo --format markdown > report.md   # to share or keep
 ```
 
 ---
@@ -335,7 +336,7 @@ The older `.kodus-readiness.yml` name keeps working.
 | `--ai-provider <name>` | `openai` (OpenAI-compatible API, needs a key) or `claude` (local Claude Code login) |
 | `--api-key`, `--api-base-url`, `--model` | Settings for the OpenAI-compatible API |
 | `--ci`, `--min-level <n>` | Non-interactive mode; exit code 1 below the level |
-| `--format <text\|json>` | Output format |
+| `--format <text\|json\|markdown>` | Output format; `markdown` prints the report as Markdown, long details in a collapsed `<details>` block. The single-repository dashboard has the same as a **Download .md** button |
 | `--no-web` | Skip the dashboard |
 | `--no-color` | Plain terminal output |
 | `--init` | Write a `.agent-readiness.yml` |
