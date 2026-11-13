@@ -2,6 +2,7 @@ import { describe, test, expect, afterEach } from "bun:test";
 import styleLinting from "../../src/pillars/style-linting.js";
 import testing from "../../src/pillars/testing.js";
 import documentation from "../../src/pillars/documentation.js";
+import codeHealth from "../../src/pillars/code-health.js";
 import type { LLMClient } from "../../src/types/index.js";
 import { createTestDir, cleanup, writeFixtures, mockProjectInfo, getCheck } from "../helpers.js";
 
@@ -163,5 +164,55 @@ describe("enforced-agent-rules", () => {
   test("fails without agent instruction files", async () => {
     const dir = await make("ear-none", { "README.md": "# x" });
     expect((await enforced(dir, info, llm(true))).pass).toBe(false);
+  });
+});
+
+describe("comment-density", () => {
+  const density = getCheck(codeHealth, "comment-density");
+  const code = (n: number) => Array.from({ length: n }, (_, i) => `\tx${i} := ${i}`).join("\n");
+
+  test("passes under 10% and ignores the file header", async () => {
+    const dir = await make("cd-ok", {
+      "main.go": `// Copyright 2026\n// License: MIT\npackage main\n${code(95)}\n// one\n// two\n// three\n// four\n// five`,
+    });
+    const r = await density(dir, info);
+    expect(r.pass).toBe(true);
+    expect(r.message).toContain("5 comment lines");
+  });
+
+  test("fails above 10% and names the worst files", async () => {
+    const dir = await make("cd-bad", {
+      "a.go": `package a\n${code(10)}\n${"// why\n".repeat(8)}`,
+      "b.py": `x = 1\n${"# because\n".repeat(3)}y = 2`,
+      "c.ts": "const a = 1;\n/* block\n * of\n */\nconst b = 2;",
+    });
+    const r = await density(dir, info);
+    expect(r.pass).toBe(false);
+    expect(r.details).toContain("a.go (8)");
+  });
+});
+
+describe("workaround-comments", () => {
+  const workaround = getCheck(codeHealth, "workaround-comments");
+
+  test("passes without justification comments", async () => {
+    const dir = await make("wc-ok", { "main.go": `package main\n${lines(100)}\n// Retry: the provider drops one in fifty requests.` });
+    expect((await workaround(dir, info)).pass).toBe(true);
+  });
+
+  test("fails above one per 1,000 lines and names the files", async () => {
+    const dir = await make("wc-bad", {
+      "ui.ts": "// workaround for a flicker, it would be a larger change\nsetTimeout(f, 0);\n// temporary: release later, in case it comes back\nsetTimeout(g, 0);",
+      "x.go": "package x\n// for now we ignore the error\nvar a = 1",
+    });
+    const r = await workaround(dir, info);
+    expect(r.pass).toBe(false);
+    expect(r.message).toContain("3 workaround comments");
+    expect(r.details).toContain("ui.ts (2)");
+  });
+
+  test("does not count words in code", async () => {
+    const dir = await make("wc-code", { "x.ts": `const forNow = workaround(hack);\n${lines(10)}` });
+    expect((await workaround(dir, info)).pass).toBe(true);
   });
 });

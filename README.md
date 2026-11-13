@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/checks-44-f59e0b.svg" alt="44 checks">
+  <img src="https://img.shields.io/badge/checks-46-f59e0b.svg" alt="46 checks">
   <img src="https://img.shields.io/badge/languages-10%2B-f59e0b.svg" alt="10+ languages">
   <img src="https://img.shields.io/badge/runs-locally-22c55e.svg" alt="Runs locally">
   <img src="https://img.shields.io/badge/built%20with-Bun%20%2B%20TypeScript-ef4444.svg" alt="Built with Bun and TypeScript">
@@ -136,7 +136,7 @@ A repository reaches a level when **80% of that level's checks pass and every le
 | 📚 **Documentation** | README, contributing guide, API docs, CODEOWNERS, AI context files, architecture docs, enforced agent rules |
 | 🔧 **Dev Environment** | Lock file, containers, environment variables, setup command, pinned runtime versions |
 | ⚙️ **CI/CD** | CI config, tests and linters in CI, automated build, deploy pipeline, branch protection |
-| 💚 **Code Health** | Dependency freshness, dead code detection, bundle analysis |
+| 💚 **Code Health** | Dependency freshness, dead code detection, workaround comments, comment density, bundle analysis |
 | 🔒 **Security** | License, security scanning, secret detection, security policy, dependency updates |
 
 ### Fair to every repository
@@ -294,6 +294,8 @@ criteria:
   no-outdated-deps: true
   dead-code-detection: true
   bundle-analysis: true
+  comment-density: true
+  workaround-comments: true
 
   # Security
   license: true
@@ -365,7 +367,7 @@ The older `.kodus-readiness.yml` name keeps working.
 ## All 39 checks
 
 <details>
-<summary><strong>View all 44 criteria across 7 pillars</strong></summary>
+<summary><strong>View all 46 criteria across 7 pillars</strong></summary>
 
 ### 🎨 Style & Linting
 
@@ -434,6 +436,8 @@ The older `.kodus-readiness.yml` name keeps working.
 |---|---|---|---|
 | `no-outdated-deps` | 3 | No | Lock file freshness across all languages (npm, yarn, pnpm, bun, uv, Gradle, Poetry, Pipfile, go.sum, Cargo.lock, packages.lock.json, Gemfile.lock, composer.lock, Package.resolved) |
 | `dead-code-detection` | 4 | No | Knip, unused-exports ESLint plugin, detekt, vulture (Python), cargo-udeps (Rust), SpotBugs/FindBugs (Java), Roslynator (C#), debride/reek (Ruby), PHPMD (PHP) |
+| `workaround-comments` | 3 | No | At most 1 comment per 1,000 lines that justifies a workaround ("workaround", "for now", "temporary", "hack", "in case it", "do not remove"); names the 5 files with the most |
+| `comment-density` | 4 | No | Comment lines at most 10% of code lines, the header block a file opens with excluded; names the 5 files with the most |
 | `bundle-analysis` | 5 | No | webpack-bundle-analyzer, @next/bundle-analyzer, size-limit (N/A without a frontend bundler) |
 
 ### 🔒 Security

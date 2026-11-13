@@ -117,6 +117,8 @@ criteria:
   no-outdated-deps: true
   dead-code-detection: true
   bundle-analysis: true
+  comment-density: true
+  workaround-comments: true
 
   # Security
   license: true

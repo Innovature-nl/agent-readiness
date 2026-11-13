@@ -1,4 +1,5 @@
 import type { Pillar } from "../types/index.js";
+import { guardrailCodeHealthCriteria } from "./guardrails.js";
 import {
   fileExists,
   readFileContent,
@@ -361,6 +362,7 @@ const codeHealth: Pillar = {
         };
       },
     },
+    ...guardrailCodeHealthCriteria,
   ],
 };
 
