@@ -107,7 +107,7 @@ export interface CLIOptions {
   apiBaseUrl?: string;
   model?: string;
   ci: boolean;
-  format: "text" | "json";
+  format: "text" | "json" | "markdown";
   minLevel?: number;
   noColor: boolean;
   init: boolean;

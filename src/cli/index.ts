@@ -13,6 +13,7 @@ import { ALL_PILLARS } from "../pillars/index.js";
 import { applyProfile, parseProfile, PROFILES } from "../pillars/profiles.js";
 import { detectGitHubRepo, fetchGitHubSettings } from "../engine/github.js";
 import { renderReport } from "../renderer/index.js";
+import { renderMarkdown } from "../renderer/markdown.js";
 import { loadConfig, generateDefaultConfig } from "../engine/config.js";
 import { createLLMClient, createClaudeCliClient } from "../engine/llm-client.js";
 import { serializeReport } from "../engine/serializer.js";
@@ -34,7 +35,8 @@ async function main(options: CLIOptions): Promise<void> {
 
   // Determine whether the spinner should be active
   const isCI = options.ci || process.env.CI === "true";
-  const isJSON = options.format === "json";
+  // Machine-readable output goes to stdout alone, without a spinner.
+  const isJSON = options.format === "json" || options.format === "markdown";
 
   const spinner = ora({
     isEnabled: !isCI && !isJSON,
@@ -183,6 +185,8 @@ async function main(options: CLIOptions): Promise<void> {
     if (options.format === "json") {
       const jsonPayload = serializeReport(reportData);
       console.log(JSON.stringify(jsonPayload, null, 2));
+    } else if (options.format === "markdown") {
+      console.log(renderMarkdown(serializeReport(reportData)));
     } else {
       renderReport(reportData, { noColor: options.noColor, ci: isCI });
     }
@@ -248,7 +252,7 @@ export function run(): void {
     .option("--api-base-url <url>", "Base URL for the LLM API (OpenAI-compatible)")
     .option("--model <model>", "LLM model to use for AI evaluations")
     .option("--ci", "Run in CI mode (non-interactive, exit code reflects level)", false)
-    .option("--format <format>", "Output format (text or json)", "text")
+    .option("--format <format>", "Output format (text, json or markdown)", "text")
     .option("--min-level <n>", "Minimum maturity level to pass (1-5)")
     .option("--no-color", "Disable colored output")
     .option("--init", "Generate a .agent-readiness.yml config file", false)
@@ -265,7 +269,7 @@ export function run(): void {
         apiBaseUrl: opts.apiBaseUrl as string | undefined,
         model: opts.model as string | undefined,
         ci: Boolean(opts.ci),
-        format: (opts.format as "text" | "json") ?? "text",
+        format: (opts.format as "text" | "json" | "markdown") ?? "text",
         minLevel: opts.minLevel !== undefined ? Number(opts.minLevel) : undefined,
         noColor: !opts.color,
         init: Boolean(opts.init),

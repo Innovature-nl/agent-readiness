@@ -33,11 +33,20 @@ export default function Header({ data }: Props) {
           )}
         </div>
       </div>
-      <div
-        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${colorClasses}`}
-      >
-        <span className="text-lg font-bold">L{level}</span>
-        <span className="text-sm font-medium">{label}</span>
+      <div className="flex items-center gap-3">
+        <a
+          href="/api/report.md"
+          download={`${data.repoName}-agent-readiness.md`}
+          className="text-sm px-3 py-2 rounded-lg border border-gray-600 text-gray-300 hover:border-cyan-500 hover:text-cyan-400"
+        >
+          Download .md
+        </a>
+        <div
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${colorClasses}`}
+        >
+          <span className="text-lg font-bold">L{level}</span>
+          <span className="text-sm font-medium">{label}</span>
+        </div>
       </div>
     </div>
   );
