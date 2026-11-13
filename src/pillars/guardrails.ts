@@ -202,11 +202,103 @@ const runtimeVerification: Criterion = {
 
 const AGENT_FILES = ["AGENTS.md", "CLAUDE.md", ".cursorrules", ".github/copilot-instructions.md", "**/AGENTS.md", "**/CLAUDE.md", ".cursor/rules/**/*.{md,mdc}"];
 
+/** Characters of rule sentences per model call; large repositories take several calls. */
+export const RULES_BATCH = 80_000;
+/** At most this many calls; rule sentences beyond them are left out by file. */
+export const MAX_RULE_BATCHES = 6;
+const ENFORCERS_BUDGET = 15_000;
+
+const HARD_RULE = /\b(never|must|always|do not|don't|forbidden|required|refuses?|only (?:via|through|use))\b/i;
+
+const HOOK_FILES = [".claude/hooks/**/*", ".husky/*", ".githooks/*", "lefthook.yml", ".lefthook.yml", ".pre-commit-config.yaml", "**/*install*hook*.{sh,bash,py}"];
+const LINT_CONFIGS = ["**/.golangci.{yml,yaml,toml,json}", "**/{eslint.config.*,.eslintrc,.eslintrc.*}", "**/biome.{json,jsonc}", "**/{pyproject.toml,ruff.toml,.ruff.toml}", "**/.semgrep.{yml,yaml}", "**/.semgrep/**/*.{yml,yaml}"];
+const LINT_RULE_LINE = /pattern:|msg:|no-restricted|noRestricted|banned-api|depguard|forbidigo|ruleguard|message:/;
+const CI_FILES = [".github/workflows/*.{yml,yaml}", ".gitlab-ci.yml", ".circleci/config.yml"];
+const CHECK_SCRIPTS = ["**/{check,verify,lint,guard,assert}-*.{sh,py,pl,ts,js,go}", "**/*-guard.{sh,py,pl,ts,js}"];
+
+/** The sentences of an instruction file that state a hard rule, each cut to 300 characters. */
+export function ruleSentences(text: string): string[] {
+  return text
+    .split(/\n+|(?<=[.!?])\s+(?=[A-Z*`])/)
+    .map((s) => s.replace(/^[\s>*#|-]+/, "").trim())
+    .filter((s) => s.length > 0 && HARD_RULE.test(s))
+    .map((s) => (s.length > 300 ? `${s.slice(0, 297)}...` : s));
+}
+
+interface RuleBatches {
+  batches: string[];
+  files: number;
+  rules: number;
+  coverage: string;
+}
+
+/** Collects the hard-rule sentences of every agent file, root files first, in batches for the model. */
+async function agentRules(repoPath: string): Promise<RuleBatches | null> {
+  const files = [...new Set(await fg(AGENT_FILES, { cwd: repoPath, ignore: IGNORE, dot: true, deep: 8 }))].sort(
+    (a, b) => Number(a.includes("/")) - Number(b.includes("/")) || a.localeCompare(b),
+  );
+  if (files.length === 0) return null;
+  const texts = await readAll(repoPath, files);
+  const batches: string[] = [];
+  let current = "";
+  let rules = 0;
+  let read = 0;
+  const left: string[] = [];
+  for (const [i, f] of files.entries()) {
+    const lines = ruleSentences(texts[i]).map((s) => `${f}: ${s}`);
+    if (lines.length === 0) {
+      read++;
+      continue;
+    }
+    const block = `${lines.join("\n")}\n`;
+    if (current.length + block.length > RULES_BATCH && current.length > 0) {
+      batches.push(current);
+      current = "";
+    }
+    if (batches.length >= MAX_RULE_BATCHES) {
+      left.push(f);
+      continue;
+    }
+    current += block.slice(0, RULES_BATCH);
+    rules += lines.length;
+    read++;
+  }
+  if (current.length > 0 && batches.length < MAX_RULE_BATCHES) batches.push(current);
+  const coverage =
+    `${rules.toLocaleString("en-US")} hard-rule sentences from ${read} of ${files.length} agent instruction files, in ${batches.length} ${batches.length === 1 ? "pass" : "passes"}` +
+    (left.length > 0 ? `; ${left.length} files left out (${left.slice(0, 3).join(", ")}${left.length > 3 ? ", ..." : ""})` : "");
+  return { batches, files: files.length, rules, coverage };
+}
+
+/** Lists what exists to enforce a rule: hooks, project lint rules, CI workflows and check scripts. */
+async function enforcersContext(repoPath: string): Promise<string> {
+  const glob = (patterns: string[], deep: number) => fg(patterns, { cwd: repoPath, ignore: IGNORE, dot: true, deep, onlyFiles: true });
+  const hooks = await glob(HOOK_FILES, 5);
+  const configs = await glob(LINT_CONFIGS, 4);
+  const rules: string[] = [];
+  for (const [i, text] of (await readAll(repoPath, configs)).entries()) {
+    const lines = text.split("\n").map((l) => l.trim()).filter((l) => LINT_RULE_LINE.test(l));
+    if (lines.length > 0) rules.push(`${configs[i]}:\n${lines.join("\n")}`);
+  }
+  const ci = await glob(CI_FILES, 3);
+  const scripts = await glob(CHECK_SCRIPTS, 6);
+  const out = [
+    `Hooks:\n${hooks.join("\n") || "(none)"}`,
+    `Project lint rules:\n${rules.join("\n") || "(none)"}`,
+    `CI workflows:\n${ci.join("\n") || "(none)"}`,
+    `Check scripts:\n${scripts.join("\n") || "(none)"}`,
+  ].join("\n\n");
+  return out.slice(0, ENFORCERS_BUDGET);
+}
+
+const AGENT_RULES_PROMPT =
+  "Below are the hard-rule sentences (things an agent must or must not do) from a repository's agent instruction files, each prefixed with its file, followed by the ENFORCERS that exist in the repository: hooks, project lint rules, CI workflows and check scripts. A rule counts as enforced when its sentence names what enforces it, or when an enforcer plausibly enforces it by name or pattern. Ignore sentences that are not rules for an agent (descriptions of runtime behaviour, for example). Pass when nearly all rules are enforced and the rest is judgment a check cannot make. Fail when many rules have no enforcer. In the details, list the rules with no enforcer (with their file), then separately the ones that are enforced but whose sentence does not say by what.";
+
 const enforcedAgentRules: Criterion = {
   id: "enforced-agent-rules",
   name: "Agent rules are enforced (AI)",
   description:
-    "The rules in the agent instruction files are backed by something that fails (a lint, a type, a test, a hook), and the files say what enforces each rule.",
+    "The hard rules in the agent instruction files are backed by something that fails (a lint rule, a type, a test, a hook, a CI check).",
   pillarId: "documentation",
   level: 5,
   requiresLLM: true,
@@ -214,17 +306,30 @@ const enforcedAgentRules: Criterion = {
     if (!llmClient) {
       return { criterionId: "enforced-agent-rules", pass: false, message: "Unable to evaluate agent rules." };
     }
-    const files = [...new Set(await fg(AGENT_FILES, { cwd: repoPath, ignore: IGNORE, dot: true, deep: 4 }))];
-    if (files.length === 0) {
+    const agent = await agentRules(repoPath);
+    if (!agent) {
       return { criterionId: "enforced-agent-rules", pass: false, message: "No agent instruction files to evaluate." };
     }
-    const texts = await readAll(repoPath, files.slice(0, 5));
-    const snippets = files.slice(0, 5).map((f, i) => `--- ${f} ---\n${texts[i].slice(0, 4000)}`);
-    const r = await llmClient.evaluate(
-      "Evaluate whether the rules in these agent instruction files are enforced. Pass when the hard rules (things an agent must or must not do) each name what enforces them, such as a lint rule, a type, a test, a hook or a CI check, for example in a table of rule and enforcement, and when the remaining prose is limited to judgment calls a check cannot make. Fail when the files are mostly unenforced must/never rules that nothing would catch if an agent ignored them. In the details, list the hard rules that nothing enforces.",
-      snippets.join("\n\n"),
-    );
-    return { ...r, criterionId: "enforced-agent-rules" };
+    if (agent.rules === 0) {
+      return { criterionId: "enforced-agent-rules", pass: true, message: `No hard rules found in ${agent.files} agent instruction files.` };
+    }
+    const enforcers = await enforcersContext(repoPath);
+    const results = [];
+    for (const [i, batch] of agent.batches.entries()) {
+      const part = agent.batches.length > 1 ? ` (part ${i + 1} of ${agent.batches.length})` : "";
+      results.push(await llmClient.evaluate(AGENT_RULES_PROMPT, `Rules${part}:\n${batch}\n=== ENFORCERS ===\n${enforcers}`));
+    }
+    const pass = results.every((r) => r.pass);
+    const failed = results.filter((r) => !r.pass).length;
+    const message =
+      results.length === 1
+        ? `${results[0].message} (${agent.coverage}.)`
+        : `${pass ? "All" : `${results.length - failed} of`} ${results.length} parts pass. (${agent.coverage}.)`;
+    const details = results
+      .map((r, i) => (results.length > 1 ? `Part ${i + 1}: ${r.message}\n${r.details ?? ""}` : (r.details ?? "")))
+      .join("\n\n")
+      .trim();
+    return { criterionId: "enforced-agent-rules", pass, message, ...(details ? { details } : {}) };
   },
 };
 

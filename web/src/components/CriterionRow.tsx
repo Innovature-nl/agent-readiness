@@ -1,4 +1,29 @@
+import { useState } from "react";
 import type { CriterionResult } from "../types";
+
+/** Details longer than this start collapsed; AI checks can return a page of text. */
+const COLLAPSE_AT = 280;
+
+function Details({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const long = text.length > COLLAPSE_AT;
+  const shown = long && !open ? `${text.slice(0, COLLAPSE_AT).trimEnd()}…` : text;
+  return (
+    <div className="mt-0.5">
+      <p className="text-xs text-gray-500 whitespace-pre-line break-words">{shown}</p>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="text-xs text-cyan-500 hover:text-cyan-400 mt-0.5"
+        >
+          {open ? "Show less" : `Show all (${text.length.toLocaleString("en-US")} characters)`}
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   result: CriterionResult;
@@ -38,7 +63,7 @@ export default function CriterionRow({ result }: Props) {
           <p className="text-xs text-cyan-500/70 mt-0.5">requires --ai</p>
         )}
         {!result.pass && !result.skipped && result.details && (
-          <p className="text-xs text-gray-500 mt-0.5">{result.details}</p>
+          <Details text={result.details} />
         )}
       </div>
     </div>
