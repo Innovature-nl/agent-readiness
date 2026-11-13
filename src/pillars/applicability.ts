@@ -27,6 +27,9 @@ const CODE_ONLY = new Set([
   "dead-code-detection",
   "naming-conventions",
   "test-quality",
+  "lint-suppressions",
+  "custom-lint-rules",
+  "property-or-formal-verification",
 ]);
 
 const BUNDLER_CONFIGS = ["vite", "webpack", "next", "nuxt", "rollup", "astro", "svelte", "remix", "angular", "rsbuild"];

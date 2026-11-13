@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e.svg" alt="License: MIT"></a>
-  <img src="https://img.shields.io/badge/checks-39-f59e0b.svg" alt="39 checks">
+  <img src="https://img.shields.io/badge/checks-42-f59e0b.svg" alt="42 checks">
   <img src="https://img.shields.io/badge/languages-10%2B-f59e0b.svg" alt="10+ languages">
   <img src="https://img.shields.io/badge/runs-locally-22c55e.svg" alt="Runs locally">
   <img src="https://img.shields.io/badge/built%20with-Bun%20%2B%20TypeScript-ef4444.svg" alt="Built with Bun and TypeScript">
@@ -131,8 +131,8 @@ A repository reaches a level when **80% of that level's checks pass and every le
 
 | Pillar | What it covers |
 |---|---|
-| 🎨 **Style & Linting** | Linter, formatter, type checker, pre-commit hooks, editorconfig, naming conventions |
-| 🧪 **Testing** | Test framework, test files, test script, coverage, end-to-end tests, test quality |
+| 🎨 **Style & Linting** | Linter, formatter, type checker, pre-commit hooks, editorconfig, lint suppressions, project-specific lint rules, naming conventions |
+| 🧪 **Testing** | Test framework, test files, test script, coverage, end-to-end tests, property-based, fuzz or formal verification, test quality |
 | 📚 **Documentation** | README, contributing guide, API docs, CODEOWNERS, AI context files, architecture docs |
 | 🔧 **Dev Environment** | Lock file, containers, environment variables, setup command, pinned runtime versions |
 | ⚙️ **CI/CD** | CI config, tests and linters in CI, automated build, deploy pipeline, branch protection |
@@ -249,6 +249,8 @@ criteria:
   type-checker: true
   pre-commit-hooks: true
   editorconfig: true
+  lint-suppressions: true
+  custom-lint-rules: true
   naming-conventions: true
 
   # Testing
@@ -257,6 +259,7 @@ criteria:
   test-script: true
   coverage-config: true
   e2e-tests: true
+  property-or-formal-verification: true
   test-quality: true
 
   # Documentation
@@ -359,7 +362,7 @@ The older `.kodus-readiness.yml` name keeps working.
 ## All 39 checks
 
 <details>
-<summary><strong>View all 39 criteria across 7 pillars</strong></summary>
+<summary><strong>View all 42 criteria across 7 pillars</strong></summary>
 
 ### 🎨 Style & Linting
 
@@ -370,6 +373,8 @@ The older `.kodus-readiness.yml` name keeps working.
 | `formatter` | 2 | No | Prettier, Biome, Black, Ruff, gofmt, ktlint, ktfmt, Spotless, google-java-format, rustfmt, dotnet format (built-in), RuboCop, PHP-CS-Fixer, SwiftFormat |
 | `type-checker` | 3 | No | TypeScript strict (also per app or package), mypy, pyright, Kotlin/Go/Java/Rust/C#/Swift (built-in static types) |
 | `pre-commit-hooks` | 3 | No | Husky, Lefthook, pre-commit, lint-staged |
+| `lint-suppressions` | 3 | No | At most 1 inline suppression (`eslint-disable`, `biome-ignore`, `//nolint`, `# noqa`, `@ts-ignore`, `@SuppressWarnings` and the like) per 1,000 lines |
+| `custom-lint-rules` | 4 | No | Project rules in the linter config: forbidigo, depguard, ruleguard, `no-restricted-*`, Biome `noRestricted*` or GritQL plugins, ruff `banned-api`, phpstan disallowed calls, detekt `Forbidden*`, Semgrep rules |
 | `naming-conventions` | 5 | Yes | File/function naming patterns and consistency |
 
 ### 🧪 Testing
@@ -381,6 +386,7 @@ The older `.kodus-readiness.yml` name keeps working.
 | `test-script` | 2 | No | package.json, Makefile, Gradle, Maven, Cargo, go test (built-in), dotnet test, Rakefile, composer.json, swift test |
 | `coverage-config` | 4 | No | nyc, Jest, Vitest (also per package), .coveragerc, JaCoCo, Kover, tarpaulin, cargo-llvm-cov, Coverlet, SimpleCov, PHPUnit coverage, `go test -coverprofile` or `--coverage` in CI |
 | `e2e-tests` | 4 | No | Playwright, Cypress, `*e2e*` and integration directories, also nested (`test/ui-e2e`) |
+| `property-or-formal-verification` | 5 | No | fast-check, Hypothesis, rapid, gopter, proptest, jqwik, kotest-property, FsCheck, Go `func Fuzz*` or `testing/quick`, cargo-fuzz, TLA+, Alloy, Dafny, Lean |
 | `test-quality` | 5 | Yes | Test meaningfulness and coverage of key functionality |
 
 ### 📚 Documentation

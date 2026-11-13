@@ -1,6 +1,7 @@
 import type { Pillar } from "../types/index.js";
 import { fileExists, readFileContent, packageJsonHas } from "./utils.js";
 import fg from "fast-glob";
+import { guardrailStyleCriteria } from "./guardrails.js";
 
 const styleLinting: Pillar = {
   id: "style-linting",
@@ -553,6 +554,7 @@ const styleLinting: Pillar = {
         ).then((r) => ({ ...r, criterionId: "naming-conventions" }));
       },
     },
+    ...guardrailStyleCriteria,
   ],
 };
 
