@@ -30,6 +30,9 @@ const CODE_ONLY = new Set([
   "lint-suppressions",
   "custom-lint-rules",
   "property-or-formal-verification",
+  "runtime-verification",
+  "comment-density",
+  "workaround-comments",
 ]);
 
 const BUNDLER_CONFIGS = ["vite", "webpack", "next", "nuxt", "rollup", "astro", "svelte", "remix", "angular", "rsbuild"];

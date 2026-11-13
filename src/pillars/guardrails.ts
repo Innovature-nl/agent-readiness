@@ -17,8 +17,23 @@ const MAX_FILES = 5000;
 const SUPPRESSION =
   /eslint-disable|biome-ignore|oxlint-disable|@ts-ignore|@ts-nocheck|\/\/\s*nolint|#\s*noqa|#\s*type:\s*ignore|pylint:\s*disable|@phpstan-ignore|@psalm-suppress|phpcs:ignore|@Suppress\(|@SuppressWarnings|#\[allow\(|rubocop:disable|swiftlint:disable|#pragma warning disable/;
 
-/** Inline lint suppressions per 1,000 lines above this fail the check. */
+/** Inline lint suppressions without a reason per 1,000 lines above this fail the check. */
 export const SUPPRESSION_LIMIT = 1;
+
+const RULE_IDS = /^[\w:/,.@()-]*/;
+
+/**
+ * A suppression has a reason when the marker and its rule ids are followed by at least two
+ * words, after a separator such as `--`, `//`, `#` or `:` (Biome requires one after the colon).
+ */
+export function hasReason(line: string): boolean {
+  const m = line.match(SUPPRESSION);
+  if (!m || m.index === undefined) return false;
+  let rest = line.slice(m.index + m[0].length).trimStart();
+  rest = rest.replace(RULE_IDS, "").trim();
+  rest = rest.replace(/^(--|\/\/|#|:|-)\s*/, "").replace(/\*\/\s*$/, "").trim();
+  return rest.split(/\s+/).filter((w) => /\w/.test(w)).length >= 2;
+}
 
 async function readAll(repoPath: string, files: string[]): Promise<string[]> {
   return Promise.all(files.map((f) => readFile(join(repoPath, f), "utf-8").catch(() => "")));
@@ -27,7 +42,7 @@ async function readAll(repoPath: string, files: string[]): Promise<string[]> {
 const lintSuppressions: Criterion = {
   id: "lint-suppressions",
   name: "Few lint suppressions",
-  description: `At most ${SUPPRESSION_LIMIT} inline lint suppression (eslint-disable, //nolint, # noqa, @ts-ignore and the like) per 1,000 lines of code.`,
+  description: `At most ${SUPPRESSION_LIMIT} inline lint suppression without a reason (eslint-disable, //nolint, # noqa, @ts-ignore and the like) per 1,000 lines of code.`,
   pillarId: "style-linting",
   level: 3,
   requiresLLM: false,
@@ -35,17 +50,20 @@ const lintSuppressions: Criterion = {
     const files = (await fg(SOURCE, { cwd: repoPath, ignore: IGNORE, dot: false })).slice(0, MAX_FILES);
     let lines = 0;
     let suppressed = 0;
+    let unexplained = 0;
     for (const text of await readAll(repoPath, files)) {
       for (const line of text.split("\n")) {
         lines++;
-        if (SUPPRESSION.test(line)) suppressed++;
+        if (!SUPPRESSION.test(line)) continue;
+        suppressed++;
+        if (!hasReason(line)) unexplained++;
       }
     }
     if (lines === 0) {
       return { criterionId: "lint-suppressions", pass: true, message: "No source files to check." };
     }
-    const perK = (suppressed / lines) * 1000;
-    const message = `${suppressed} inline suppressions in ${lines.toLocaleString("en-US")} lines (${perK.toFixed(2)} per 1,000).`;
+    const perK = (unexplained / lines) * 1000;
+    const message = `${unexplained} of ${suppressed} inline suppressions without a reason in ${lines.toLocaleString("en-US")} lines (${perK.toFixed(2)} per 1,000).`;
     if (perK <= SUPPRESSION_LIMIT) {
       return { criterionId: "lint-suppressions", pass: true, message };
     }
@@ -54,7 +72,7 @@ const lintSuppressions: Criterion = {
       pass: false,
       message,
       details:
-        "Every suppression is an escape hatch an agent copies as the local pattern. Fix the root cause, or require a reason per suppression (golangci nolintlint, eslint-comments/require-description) and let the count only go down.",
+        "Every suppression is an escape hatch an agent copies as the local pattern. Fix the root cause; where an exception stays, give it a reason on the same line and enforce that (golangci nolintlint require-explanation, eslint-comments/require-description).",
     };
   },
 };
@@ -148,5 +166,185 @@ const verification: Criterion = {
   },
 };
 
+const runtimeVerification: Criterion = {
+  id: "runtime-verification",
+  name: "Runtime verification skill",
+  description:
+    "An agent skill that drives the real app the way a user does and captures evidence (.claude/skills/verify-*, .cursor/skills/verify-* and the like), ideally with a feature map.",
+  pillarId: "testing",
+  level: 4,
+  requiresLLM: false,
+  check: async (repoPath) => {
+    const skills = await fg(["**/.{claude,cursor,agents,codex,github}/skills/{verify,verification}*/SKILL.md"], {
+      cwd: repoPath,
+      ignore: IGNORE,
+      dot: true,
+      deep: 8,
+    });
+    if (skills.length > 0) {
+      const dir = skills[0].slice(0, -"SKILL.md".length);
+      const [map] = await fg([`${dir}features/**/*.md`], { cwd: repoPath, dot: true });
+      return {
+        criterionId: "runtime-verification",
+        pass: true,
+        message: map ? `Verification skill with a feature map: ${dir}` : `Verification skill: ${dir} (no feature map yet)`,
+      };
+    }
+    return {
+      criterionId: "runtime-verification",
+      pass: false,
+      message: "No verification skill found.",
+      details:
+        "Give agents one scripted way to launch the real app, drive a feature the way a user does, and capture evidence (screenshots, transcripts, responses), as a skill such as .claude/skills/verify-<app>/SKILL.md with a feature map in features/. Review then becomes reading that evidence. For Cursor, pstack's /create-verification-skill generates one.",
+    };
+  },
+};
+
+const AGENT_FILES = ["AGENTS.md", "CLAUDE.md", ".cursorrules", ".github/copilot-instructions.md", "**/AGENTS.md", "**/CLAUDE.md", ".cursor/rules/**/*.{md,mdc}"];
+
+const enforcedAgentRules: Criterion = {
+  id: "enforced-agent-rules",
+  name: "Agent rules are enforced (AI)",
+  description:
+    "The rules in the agent instruction files are backed by something that fails (a lint, a type, a test, a hook), and the files say what enforces each rule.",
+  pillarId: "documentation",
+  level: 5,
+  requiresLLM: true,
+  check: async (repoPath, _projectInfo, llmClient) => {
+    if (!llmClient) {
+      return { criterionId: "enforced-agent-rules", pass: false, message: "Unable to evaluate agent rules." };
+    }
+    const files = [...new Set(await fg(AGENT_FILES, { cwd: repoPath, ignore: IGNORE, dot: true, deep: 4 }))];
+    if (files.length === 0) {
+      return { criterionId: "enforced-agent-rules", pass: false, message: "No agent instruction files to evaluate." };
+    }
+    const texts = await readAll(repoPath, files.slice(0, 5));
+    const snippets = files.slice(0, 5).map((f, i) => `--- ${f} ---\n${texts[i].slice(0, 4000)}`);
+    const r = await llmClient.evaluate(
+      "Evaluate whether the rules in these agent instruction files are enforced. Pass when the hard rules (things an agent must or must not do) each name what enforces them, such as a lint rule, a type, a test, a hook or a CI check, for example in a table of rule and enforcement, and when the remaining prose is limited to judgment calls a check cannot make. Fail when the files are mostly unenforced must/never rules that nothing would catch if an agent ignored them. In the details, list the hard rules that nothing enforces.",
+      snippets.join("\n\n"),
+    );
+    return { ...r, criterionId: "enforced-agent-rules" };
+  },
+};
+
+// Comments: an agent copies a comment as readily as code, and a comment is where it
+// justifies a quick fix ("it would be a larger change"). The talk's team removed 99%.
+
+const HASH_COMMENTS = new Set(["py", "rb"]);
+
+/** Comment lines above this share of code lines fail comment-density. */
+export const COMMENT_LIMIT = 0.1;
+/** Workaround comments per 1,000 lines above this fail workaround-comments. */
+export const WORKAROUND_LIMIT = 1;
+
+const WORKAROUND =
+  /\b(workaround|for now|temporar(y|ily)|hack(y|ish)?|quick fix|in case it|larger change|do not remove|don't remove)\b/i;
+
+interface FileComments {
+  file: string;
+  comments: number;
+  code: number;
+  workarounds: number;
+}
+
+function isCommentLine(line: string, ext: string): boolean {
+  if (line.startsWith("//") || line.startsWith("/*") || line.startsWith("*")) return !HASH_COMMENTS.has(ext);
+  if (line.startsWith("#") && !line.startsWith("#!") && !line.startsWith("#[")) {
+    return HASH_COMMENTS.has(ext) || ext === "php";
+  }
+  return false;
+}
+
+/** Counts comment, code and workaround lines in a file; the comment block it opens with (licence, package doc) is left out of the comments. */
+function countComments(file: string, text: string): FileComments {
+  const ext = file.slice(file.lastIndexOf(".") + 1);
+  const out: FileComments = { file, comments: 0, code: 0, workarounds: 0 };
+  let inBlock = false;
+  let header = true;
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (line === "") continue;
+    const comment = inBlock || isCommentLine(line, ext);
+    if (!inBlock && line.startsWith("/*") && !HASH_COMMENTS.has(ext) && !line.includes("*/")) inBlock = true;
+    else if (inBlock && line.includes("*/")) inBlock = false;
+    if (!comment) {
+      header = false;
+      out.code++;
+      continue;
+    }
+    // A workaround comment counts wherever it is; the header only stays out of the density.
+    if (WORKAROUND.test(line)) out.workarounds++;
+    if (!header) out.comments++;
+  }
+  return out;
+}
+
+async function scanComments(repoPath: string): Promise<FileComments[]> {
+  const files = (await fg(SOURCE, { cwd: repoPath, ignore: IGNORE, dot: false })).slice(0, MAX_FILES);
+  const texts = await readAll(repoPath, files);
+  return files.map((f, i) => countComments(f, texts[i]));
+}
+
+function worst(files: FileComments[], key: "comments" | "workarounds"): string {
+  return [...files]
+    .filter((f) => f[key] > 0)
+    .sort((a, b) => b[key] - a[key])
+    .slice(0, 5)
+    .map((f) => `${f.file} (${f[key]})`)
+    .join(", ");
+}
+
+const commentDensity: Criterion = {
+  id: "comment-density",
+  name: "Few comments",
+  description: `Comment lines are at most ${COMMENT_LIMIT * 100}% of code lines (the header block a file opens with is excluded).`,
+  pillarId: "code-health",
+  level: 4,
+  requiresLLM: false,
+  check: async (repoPath) => {
+    const files = await scanComments(repoPath);
+    const comments = files.reduce((n, f) => n + f.comments, 0);
+    const code = files.reduce((n, f) => n + f.code, 0);
+    if (code === 0) return { criterionId: "comment-density", pass: true, message: "No source files to check." };
+    const share = comments / code;
+    const message = `${comments.toLocaleString("en-US")} comment lines for ${code.toLocaleString("en-US")} lines of code (${(share * 100).toFixed(1)}%).`;
+    if (share <= COMMENT_LIMIT) return { criterionId: "comment-density", pass: true, message };
+    return {
+      criterionId: "comment-density",
+      pass: false,
+      message,
+      details: `Most comments: ${worst(files, "comments")}. Comments go stale, nothing enforces them, and an agent copies them as the local pattern. Keep the few that say why the code cannot; turn rules into lint checks or types, and let names say the rest.`,
+    };
+  },
+};
+
+const workaroundComments: Criterion = {
+  id: "workaround-comments",
+  name: "No workaround comments",
+  description: `At most ${WORKAROUND_LIMIT} comment per 1,000 lines that justifies a workaround ("workaround", "for now", "temporary", "hack", "in case it", "do not remove").`,
+  pillarId: "code-health",
+  level: 3,
+  requiresLLM: false,
+  check: async (repoPath) => {
+    const files = await scanComments(repoPath);
+    const found = files.reduce((n, f) => n + f.workarounds, 0);
+    const lines = files.reduce((n, f) => n + f.code + f.comments, 0);
+    if (lines === 0) return { criterionId: "workaround-comments", pass: true, message: "No source files to check." };
+    const perK = (found / lines) * 1000;
+    const message = `${found} workaround comments in ${lines.toLocaleString("en-US")} lines (${perK.toFixed(2)} per 1,000).`;
+    if (perK <= WORKAROUND_LIMIT) return { criterionId: "workaround-comments", pass: true, message };
+    return {
+      criterionId: "workaround-comments",
+      pass: false,
+      message,
+      details: `Most in: ${worst(files, "workarounds")}. A comment that explains why a quick fix is fine is how the fix spreads: the next agent copies both. Fix the root cause and delete the comment; where it must stay, encode it as a lint rule or a test.`,
+    };
+  },
+};
+
+export const guardrailCodeHealthCriteria: Criterion[] = [commentDensity, workaroundComments];
+
 export const guardrailStyleCriteria: Criterion[] = [lintSuppressions, customLintRules];
-export const guardrailTestingCriteria: Criterion[] = [verification];
+export const guardrailTestingCriteria: Criterion[] = [runtimeVerification, verification];
+export const guardrailDocumentationCriteria: Criterion[] = [enforcedAgentRules];

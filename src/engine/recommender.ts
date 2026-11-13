@@ -260,7 +260,7 @@ export const CRITERION_INFO: Record<
   },
   "lint-suppressions": {
     description:
-      "Remove inline lint suppressions by fixing the root cause, and require a reason on the ones that stay",
+      "Remove inline lint suppressions by fixing the root cause, and give every one that stays a reason on the same line",
     reason:
       "Agents copy what the codebase does: every suppression is an escape hatch the next agent treats as the local pattern",
   },
@@ -269,6 +269,30 @@ export const CRITERION_INFO: Record<
       "Turn every correction you give an agent into a lint rule: ban the call or import, with a message that names the right way",
     reason:
       "A rule enforces the lesson on every change; a line in AGENTS.md only asks, and an agent can talk itself past it",
+  },
+  "comment-density": {
+    description:
+      "Remove comments that restate the code or explain a workaround; keep the few that say why, and turn rules into lint checks or types",
+    reason:
+      "Agents copy comments as the local pattern, comments go stale, and nothing enforces them; one team removed 99% of theirs",
+  },
+  "workaround-comments": {
+    description:
+      "Fix the root cause behind each workaround comment and delete the comment, or encode the constraint as a lint rule or test",
+    reason:
+      "A comment that justifies a quick fix is how the fix spreads: the next agent copies the fix and its excuse",
+  },
+  "runtime-verification": {
+    description:
+      "Add a verification skill that launches the real app, drives a feature like a user and captures evidence, with a feature map",
+    reason:
+      "An agent that can run the app and show proof checks its own work; review becomes reading the evidence instead of re-testing by hand",
+  },
+  "enforced-agent-rules": {
+    description:
+      "Back every hard rule in AGENTS.md or CLAUDE.md with a lint, type, test or hook, and list next to each rule what enforces it",
+    reason:
+      "Nothing fails when an agent skips a sentence; a rule that is enforced holds on every change, and the table shows which rules still rely on prose alone",
   },
   "property-or-formal-verification": {
     description:
@@ -357,6 +381,10 @@ export const EFFORT_MAP: Record<string, Recommendation["effort"]> = {
   "lint-suppressions": "medium",
   "custom-lint-rules": "medium",
   "property-or-formal-verification": "high",
+  "runtime-verification": "high",
+  "comment-density": "high",
+  "workaround-comments": "medium",
+  "enforced-agent-rules": "medium",
 };
 
 // ---------------------------------------------------------------------------
