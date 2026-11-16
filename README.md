@@ -436,7 +436,7 @@ The older `.kodus-readiness.yml` name keeps working.
 | Criterion | Level | AI | What It Detects |
 |---|---|---|---|
 | `no-outdated-deps` | 3 | No | Lock file freshness across all languages (npm, yarn, pnpm, bun, uv, Gradle, Poetry, Pipfile, go.sum, Cargo.lock, packages.lock.json, Gemfile.lock, composer.lock, Package.resolved) |
-| `dead-code-detection` | 4 | No | Knip, unused-exports ESLint plugin, detekt, vulture (Python), cargo-udeps (Rust), SpotBugs/FindBugs (Java), Roslynator (C#), debride/reek (Ruby), PHPMD (PHP) |
+| `dead-code-detection` | 4 | No | golangci-lint `unused` linter (Go), Knip, unused-exports ESLint plugin, detekt, vulture (Python), cargo-udeps (Rust), SpotBugs/FindBugs (Java), Roslynator (C#), debride/reek (Ruby), PHPMD (PHP) |
 | `workaround-comments` | 3 | No | At most 1 comment per 1,000 lines that justifies a workaround ("workaround", "for now", "temporary", "hack", "in case it", "do not remove"); names the 5 files with the most |
 | `comment-density` | 4 | No | Comment lines at most 10% of code lines, the header block a file opens with excluded; names the 5 files with the most |
 | `bundle-analysis` | 5 | No | webpack-bundle-analyzer, @next/bundle-analyzer, size-limit (N/A without a frontend bundler) |
