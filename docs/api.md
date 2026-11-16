@@ -15,6 +15,7 @@ Agent Readiness has two interfaces for other programs: the JSON report of the CL
 | `levelResult` | `level` (1 to 5) and `nextLevelProgress` (`current`, `needed`, `remaining`, `nextLevel`) |
 | `pillarScores` | Per pillar: `passed`, `total`, `percentage` |
 | `recommendations` | Fixes for failed checks: `title`, `description`, `reason`, `effort`, `impact`, `pillarId`, `criterionId` |
+| `packageScores` | Monorepos only, otherwise empty: per package `path`, `passed`, `total`, `percentage` and `results` for the package-scoped checks |
 
 With `--history <dir>` the same scan is also stored as a snapshot in `<dir>/<repo>/<timestamp>.json` (`Snapshot` in `src/engine/history.ts`).
 

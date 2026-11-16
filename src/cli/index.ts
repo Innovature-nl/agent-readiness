@@ -11,6 +11,7 @@ import { detectProject } from "../engine/detector.js";
 import { detectGitHubRepo, fetchGitHubSettings } from "../engine/github.js";
 import { diffSnapshots, loadHistory, saveSnapshot, summarizeOrg, toSnapshot } from "../engine/history.js";
 import { createClaudeCliClient, createLLMClient } from "../engine/llm-client.js";
+import { analyzePackages } from "../engine/packages.js";
 import { generateRecommendations } from "../engine/recommender.js";
 import { calculateLevel, calculatePillarScores } from "../engine/scorer.js";
 import { serializeReport } from "../engine/serializer.js";
@@ -21,7 +22,7 @@ import { renderReport } from "../renderer/index.js";
 import { renderMarkdown } from "../renderer/markdown.js";
 import { openBrowser, startServer } from "../server/index.js";
 import { createScanService } from "../server/scanner.js";
-import type { CLIOptions, Pillar, ReportData } from "../types/index.js";
+import type { CLIOptions, PackageScore, Pillar, ReportData } from "../types/index.js";
 
 /**
  * Main orchestration function.
@@ -155,6 +156,12 @@ async function main(options: CLIOptions): Promise<void> {
     // k. Generate recommendations
     const recommendations = generateRecommendations(pillars, results, pillarScores, levelResult);
 
+    let packageScores: PackageScore[] = [];
+    if (projectInfo.isMonorepo && projectInfo.packages.length > 0) {
+      spinner.text = `Analyzing ${projectInfo.packages.length} packages...`;
+      packageScores = await analyzePackages(pillars, repoPath, projectInfo.packages, results);
+    }
+
     // l. Stop spinner
     spinner.stop();
 
@@ -168,6 +175,7 @@ async function main(options: CLIOptions): Promise<void> {
       levelResult,
       pillarScores,
       recommendations,
+      packageScores,
     };
 
     // n-o. Output report
