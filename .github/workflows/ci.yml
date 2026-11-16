@@ -17,5 +17,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run lint
+      - run: bun run knip
       - run: bun test --coverage
       - run: bun run build:all
+      - run: bun run size
