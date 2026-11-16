@@ -117,6 +117,43 @@ describe("detectProject", () => {
     expect(info.detectedTypes).toContain("node");
     expect(info.detectedTypes).toContain("ruby");
   });
+
+  test("finds packages of a workspace nested in a subdirectory", async () => {
+    const dir = await make("nested-ws", {
+      "package.json": JSON.stringify({ name: "root" }),
+      "pnpm-workspace.yaml": 'packages:\n  - "libs/*"\n  - "!web/**"\n',
+      "libs/ui/package.json": JSON.stringify({ name: "ui" }),
+      "web/package.json": JSON.stringify({ name: "web-root" }),
+      "web/pnpm-workspace.yaml": 'packages:\n  - "apps/*"\n',
+      "web/apps/shop/package.json": JSON.stringify({ name: "shop" }),
+      "web/apps/admin/package.json": JSON.stringify({ name: "admin" }),
+    });
+    const info = await detectProject(dir);
+    expect(info.isMonorepo).toBe(true);
+    expect(info.packages).toEqual(["libs/ui", "web/apps/admin", "web/apps/shop"]);
+  });
+
+  test("treats Go services with their own cmd/ in one root module as packages", async () => {
+    const dir = await make("go-services", {
+      "go.mod": "module example.com/shop\n\ngo 1.24\n",
+      "services/payments/cmd/server/main.go": "package main\n",
+      "services/orders/cmd/server/main.go": "package main\n",
+      "services/shared/util.go": "package shared\n",
+    });
+    const info = await detectProject(dir);
+    expect(info.isMonorepo).toBe(true);
+    expect(info.packages).toEqual(["services/orders", "services/payments"]);
+  });
+
+  test("a single Go service with cmd/ is not a monorepo", async () => {
+    const dir = await make("go-single", {
+      "go.mod": "module example.com/tool\n\ngo 1.24\n",
+      "cmd/tool/main.go": "package main\n",
+    });
+    const info = await detectProject(dir);
+    expect(info.isMonorepo).toBe(false);
+    expect(info.packages).toEqual([]);
+  });
 });
 
 describe("projects one directory down", () => {

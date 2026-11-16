@@ -21,6 +21,7 @@ export async function analyzePackages(
   repoPath: string,
   packages: string[],
   rootResults: Map<string, CriterionResult[]>,
+  rootTypes: string[],
 ): Promise<PackageScore[]> {
   const packagePillars = pillars
     .map((p) => ({ ...p, criteria: p.criteria.filter((c) => PACKAGE_CRITERIA.has(c.id)) }))
@@ -38,6 +39,8 @@ export async function analyzePackages(
   for (const pkg of packages) {
     const pkgPath = path.join(repoPath, pkg);
     const projectInfo = await detectProject(pkgPath);
+    // A Go service inside a root module has no manifest of its own; it is still code.
+    if (projectInfo.detectedTypes.length === 0) projectInfo.detectedTypes = rootTypes;
     const results = [...(await new AnalysisEngine(packagePillars, pkgPath, projectInfo).run()).values()]
       .flat()
       .map((r) =>

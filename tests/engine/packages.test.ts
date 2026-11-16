@@ -17,7 +17,7 @@ async function scan(fixtures: Record<string, string>) {
   await writeFixtures(dir, fixtures);
   const info = await detectProject(dir);
   const rootResults = await new AnalysisEngine(ALL_PILLARS, dir, info).run();
-  return { info, scores: await analyzePackages(ALL_PILLARS, dir, info.packages, rootResults) };
+  return { info, scores: await analyzePackages(ALL_PILLARS, dir, info.packages, rootResults, info.detectedTypes) };
 }
 
 const result = (scores: Awaited<ReturnType<typeof scan>>["scores"], pkg: string, id: string) =>
@@ -63,6 +63,23 @@ describe("analyzePackages", () => {
 
   test("returns nothing when the package criteria are disabled", async () => {
     const pillars = ALL_PILLARS.map((p) => ({ ...p, criteria: p.criteria.filter((c) => c.id === "readme") }));
-    expect(await analyzePackages(pillars, "/nonexistent", ["a"], new Map())).toEqual([]);
+    expect(await analyzePackages(pillars, "/nonexistent", ["a"], new Map(), [])).toEqual([]);
+  });
+
+  test("scores Go services in a root module as Go code", async () => {
+    const { info, scores } = await scan({
+      "go.mod": "module example.com/shop\n\ngo 1.24\n",
+      ".golangci.yml": "linters:\n  enable: [govet]\n",
+      "services/payments/cmd/server/main.go": "package main\n",
+      "services/payments/pay_test.go": "package payments\n",
+      "services/payments/Makefile": "test:\n\tgo test ./...\n",
+      "services/orders/cmd/server/main.go": "package main\n",
+    });
+    expect(info.packages).toEqual(["services/orders", "services/payments"]);
+    expect(result(scores, "services/payments", "test-files-exist")?.pass).toBe(true);
+    expect(result(scores, "services/payments", "test-script")?.pass).toBe(true);
+    expect(result(scores, "services/orders", "test-files-exist")?.pass).toBe(false);
+    // Not N/A: the service has no go.mod of its own but is still Go code.
+    expect(result(scores, "services/orders", "linter")?.skipped).toBeFalsy();
   });
 });

@@ -159,7 +159,7 @@ async function main(options: CLIOptions): Promise<void> {
     let packageScores: PackageScore[] = [];
     if (projectInfo.isMonorepo && projectInfo.packages.length > 0) {
       spinner.text = `Analyzing ${projectInfo.packages.length} packages...`;
-      packageScores = await analyzePackages(pillars, repoPath, projectInfo.packages, results);
+      packageScores = await analyzePackages(pillars, repoPath, projectInfo.packages, results, projectInfo.detectedTypes);
     }
 
     // l. Stop spinner
