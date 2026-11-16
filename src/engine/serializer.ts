@@ -22,6 +22,7 @@ export interface SerializedReportData {
   levelResult: ReportData["levelResult"];
   pillarScores: ReportData["pillarScores"];
   recommendations: ReportData["recommendations"];
+  packageScores: ReportData["packageScores"];
 }
 
 /**
@@ -52,5 +53,6 @@ export function serializeReport(reportData: ReportData): SerializedReportData {
     levelResult: reportData.levelResult,
     pillarScores: reportData.pillarScores,
     recommendations: reportData.recommendations,
+    packageScores: reportData.packageScores,
   };
 }

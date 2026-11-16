@@ -71,6 +71,15 @@ const report: SerializedReportData = {
       criterionId: "enforced-agent-rules",
     },
   ],
+  packageScores: [
+    {
+      path: "apps/web",
+      passed: 0,
+      total: 1,
+      percentage: 0,
+      results: [{ criterionId: "linter", pass: false, message: "No linter" }],
+    },
+  ],
 };
 
 describe("renderMarkdown", () => {
@@ -104,5 +113,15 @@ describe("renderMarkdown", () => {
     expect(md).toContain(
       "1. **Agent rules are enforced (AI)** (impact medium, Documentation): Back every hard rule with a check. Nothing fails when an agent skips a sentence",
     );
+  });
+
+  test("lists monorepo packages with what they miss", () => {
+    const md = renderMarkdown(report);
+    expect(md).toContain("| `apps/web` | 0% | 0/1 | Linter configured |");
+    expect(md).toContain("- 0/1 packages pass Linter configured");
+  });
+
+  test("leaves the packages section out when there are none", () => {
+    expect(renderMarkdown({ ...report, packageScores: [] })).not.toContain("## Packages");
   });
 });

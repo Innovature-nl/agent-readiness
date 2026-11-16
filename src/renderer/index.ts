@@ -1,6 +1,7 @@
 import boxen from "boxen";
 import chalk from "chalk";
 import Table from "cli-table3";
+import { summarizePackages } from "../engine/packages.js";
 import type { MaturityLevel, Pillar, PillarScore, RenderOptions, ReportData } from "../types/index.js";
 import { LEVEL_LABELS } from "../types/index.js";
 
@@ -363,6 +364,39 @@ function renderFooter(data: ReportData, ci: boolean): void {
 
 // ─── Main Export ────────────────────────────────────────────────────────────
 
+function criterionName(pillars: Pillar[], criterionId: string): string {
+  return pillars.flatMap((p) => p.criteria).find((c) => c.id === criterionId)?.name ?? criterionId;
+}
+
+function renderPackages(data: ReportData, ci: boolean): void {
+  if (data.packageScores.length === 0) return;
+  const summary = summarizePackages(data.packageScores);
+
+  if (ci) {
+    console.log("--- Packages ---");
+    for (const s of data.packageScores) console.log(`  ${s.path}: ${s.percentage}% (${s.passed}/${s.total})`);
+    for (const c of summary) console.log(`  ${c.passed}/${c.total} packages pass: ${criterionName(data.pillars, c.criterionId)}`);
+    console.log("");
+    return;
+  }
+
+  console.log("");
+  console.log(chalk.bold.white("  +- ") + chalk.bold.cyan("PACKAGES") + chalk.bold.white(" -".repeat(23)));
+  console.log("");
+  for (const c of summary) {
+    const color = c.passed === c.total ? chalk.green : c.passed === 0 ? chalk.red : chalk.yellow;
+    console.log(`  ${color.bold(`${c.passed}/${c.total}`)} ${chalk.white("packages pass")} ${criterionName(data.pillars, c.criterionId)}`);
+  }
+  console.log("");
+  for (const s of data.packageScores) {
+    const failed = s.results.filter((r) => !r.pass && !r.skipped).map((r) => criterionName(data.pillars, r.criterionId));
+    console.log(
+      `  ${progressBar(s.percentage, 12)} ${chalk.white(`${s.percentage}%`.padStart(4))}  ${chalk.cyan(s.path)}` +
+        (failed.length > 0 ? chalk.dim(`  missing: ${failed.join(", ")}`) : ""),
+    );
+  }
+}
+
 export function renderReport(data: ReportData, options: RenderOptions): void {
   if (options.noColor) {
     chalk.level = 0;
@@ -373,6 +407,7 @@ export function renderReport(data: ReportData, options: RenderOptions): void {
   renderHeader(data, ci);
   renderLevelBadge(data, ci);
   renderPillarSummary(data, ci);
+  renderPackages(data, ci);
   renderDetailedBreakdown(data, ci);
   renderRecommendations(data, ci);
   renderFooter(data, ci);
