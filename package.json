@@ -13,12 +13,13 @@
     "test": "bun test",
     "dev": "bun run src/index.ts",
     "typecheck": "bun x tsc --noEmit",
-    "lint": "bun x biome check src/",
+    "lint": "biome check",
     "build": "bun build src/index.ts --outdir dist --target node",
     "build:web": "cd web && bun install && bun run build",
     "build:all": "bun run build && bun run build:web",
     "prepublishOnly": "bun run build:all",
-    "dev:web": "cd web && bun install && bun run dev"
+    "dev:web": "cd web && bun install && bun run dev",
+    "format": "biome check --write"
   },
   "publishConfig": {
     "access": "public"
@@ -46,6 +47,7 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "@types/bun": "latest",
     "typescript": "^5.7.0"
   }

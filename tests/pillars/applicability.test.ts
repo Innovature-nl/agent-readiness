@@ -1,8 +1,8 @@
-import { describe, test, expect, afterEach } from "bun:test";
-import { notApplicableReason } from "../../src/pillars/applicability.js";
+import { afterEach, describe, expect, test } from "bun:test";
 import { calculateLevel } from "../../src/engine/scorer.js";
+import { notApplicableReason } from "../../src/pillars/applicability.js";
 import type { CriterionResult, Pillar } from "../../src/types/index.js";
-import { createTestDir, cleanup, writeFixtures, mockProjectInfo } from "../helpers.js";
+import { cleanup, createTestDir, mockProjectInfo, writeFixtures } from "../helpers.js";
 
 let dirs: string[] = [];
 afterEach(async () => {
@@ -30,9 +30,7 @@ describe("applicability", () => {
   test("an empty top level is not passed for free", () => {
     const criteria = [1, 2, 3, 4].map((level) => ({ id: `c${level}`, level, check: async () => ({}) }));
     const pillar = { id: "p", name: "P", criteria } as unknown as Pillar;
-    const results = new Map<string, CriterionResult[]>([
-      ["p", criteria.map((c) => ({ criterionId: c.id, pass: true, message: "" }))],
-    ]);
+    const results = new Map<string, CriterionResult[]>([["p", criteria.map((c) => ({ criterionId: c.id, pass: true, message: "" }))]]);
     expect(calculateLevel([pillar], results).level).toBe(4);
   });
 });

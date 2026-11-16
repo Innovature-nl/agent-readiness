@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { parseGitHubRemote, type GitHubSettings } from "../../src/engine/github.js";
+import { describe, expect, test } from "bun:test";
+import { type GitHubSettings, parseGitHubRemote } from "../../src/engine/github.js";
 import ciCd from "../../src/pillars/ci-cd.js";
 import security from "../../src/pillars/security.js";
 import { getCheck, mockProjectInfo } from "../helpers.js";

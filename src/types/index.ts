@@ -26,11 +26,7 @@ export interface CriterionResult {
   skipped?: boolean;
 }
 
-export type CriterionCheckFn = (
-  repoPath: string,
-  projectInfo: ProjectInfo,
-  llmClient?: LLMClient,
-) => Promise<CriterionResult>;
+export type CriterionCheckFn = (repoPath: string, projectInfo: ProjectInfo, llmClient?: LLMClient) => Promise<CriterionResult>;
 
 export interface Criterion {
   id: string;

@@ -70,10 +70,14 @@ export function createScanService(options: ScanServiceOptions) {
       process.argv[1],
       dir,
       "--no-web",
-      "--format", "json",
-      "--history", options.historyDir,
-      "--profile", options.profile,
-      "--github", `${options.org}/${name}`,
+      "--format",
+      "json",
+      "--history",
+      options.historyDir,
+      "--profile",
+      options.profile,
+      "--github",
+      `${options.org}/${name}`,
       ...(options.ai ? ["--ai", "--ai-provider", "claude"] : []),
     ];
     await run(process.execPath, args, { timeout: 15 * 60 * 1000, maxBuffer: 50 * 1024 * 1024 });

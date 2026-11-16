@@ -7,7 +7,16 @@ import type { Criterion } from "../types/index.js";
 // instead of asking it in prose. After Lauren Tan, "All Code Is Slop (Except Mine)",
 // AI Engineer Code Summit 2026.
 
-const IGNORE = ["**/node_modules/**", "**/vendor/**", "**/.git/**", "**/dist/**", "**/build/**", "**/target/**", "**/gen/**", "**/generated/**"];
+const IGNORE = [
+  "**/node_modules/**",
+  "**/vendor/**",
+  "**/.git/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/target/**",
+  "**/gen/**",
+  "**/generated/**",
+];
 
 const SOURCE = "**/*.{ts,tsx,js,jsx,mjs,cjs,go,py,php,rb,kt,kts,java,cs,rs,swift}";
 
@@ -31,7 +40,10 @@ export function hasReason(line: string): boolean {
   if (!m || m.index === undefined) return false;
   let rest = line.slice(m.index + m[0].length).trimStart();
   rest = rest.replace(RULE_IDS, "").trim();
-  rest = rest.replace(/^(--|\/\/|#|:|-)\s*/, "").replace(/\*\/\s*$/, "").trim();
+  rest = rest
+    .replace(/^(--|\/\/|#|:|-)\s*/, "")
+    .replace(/\*\/\s*$/, "")
+    .trim();
   return rest.split(/\s+/).filter((w) => /\w/.test(w)).length >= 2;
 }
 
@@ -99,7 +111,12 @@ const customLintRules: Criterion = {
   level: 4,
   requiresLLM: false,
   check: async (repoPath) => {
-    const [semgrep] = await fg(["**/.semgrep.{yml,yaml}", "**/.semgrep/**/*.{yml,yaml}"], { cwd: repoPath, ignore: IGNORE, dot: true, deep: 5 });
+    const [semgrep] = await fg(["**/.semgrep.{yml,yaml}", "**/.semgrep/**/*.{yml,yaml}"], {
+      cwd: repoPath,
+      ignore: IGNORE,
+      dot: true,
+      deep: 5,
+    });
     if (semgrep) {
       return { criterionId: "custom-lint-rules", pass: true, message: `Semgrep rules found: ${semgrep}` };
     }
@@ -124,7 +141,8 @@ const customLintRules: Criterion = {
 // Manifest entries and files that mean property-based, fuzz or formal verification.
 const VERIFICATION_DEPS =
   /fast-check|@fast-check\/|\bhypothesis\b|atheris|pgregory\.net\/rapid|leanovate\/gopter|\bproptest\b|\bquickcheck\b|\bbolero\b|jqwik|kotest-property|FsCheck|CsCheck|giorgiosironi\/eris|\brantly\b|propcheck/;
-const VERIFICATION_MANIFESTS = "**/{package.json,go.mod,Cargo.toml,pyproject.toml,requirements*.txt,build.gradle,build.gradle.kts,pom.xml,*.csproj,composer.json,Gemfile}";
+const VERIFICATION_MANIFESTS =
+  "**/{package.json,go.mod,Cargo.toml,pyproject.toml,requirements*.txt,build.gradle,build.gradle.kts,pom.xml,*.csproj,composer.json,Gemfile}";
 
 const verification: Criterion = {
   id: "property-or-formal-verification",
@@ -200,7 +218,15 @@ const runtimeVerification: Criterion = {
   },
 };
 
-const AGENT_FILES = ["AGENTS.md", "CLAUDE.md", ".cursorrules", ".github/copilot-instructions.md", "**/AGENTS.md", "**/CLAUDE.md", ".cursor/rules/**/*.{md,mdc}"];
+const AGENT_FILES = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  ".cursorrules",
+  ".github/copilot-instructions.md",
+  "**/AGENTS.md",
+  "**/CLAUDE.md",
+  ".cursor/rules/**/*.{md,mdc}",
+];
 
 /** Characters of rule sentences per model call; large repositories take several calls. */
 export const RULES_BATCH = 80_000;
@@ -210,8 +236,23 @@ const ENFORCERS_BUDGET = 15_000;
 
 const HARD_RULE = /\b(never|must|always|do not|don't|forbidden|required|refuses?|only (?:via|through|use))\b/i;
 
-const HOOK_FILES = [".claude/hooks/**/*", ".husky/*", ".githooks/*", "lefthook.yml", ".lefthook.yml", ".pre-commit-config.yaml", "**/*install*hook*.{sh,bash,py}"];
-const LINT_CONFIGS = ["**/.golangci.{yml,yaml,toml,json}", "**/{eslint.config.*,.eslintrc,.eslintrc.*}", "**/biome.{json,jsonc}", "**/{pyproject.toml,ruff.toml,.ruff.toml}", "**/.semgrep.{yml,yaml}", "**/.semgrep/**/*.{yml,yaml}"];
+const HOOK_FILES = [
+  ".claude/hooks/**/*",
+  ".husky/*",
+  ".githooks/*",
+  "lefthook.yml",
+  ".lefthook.yml",
+  ".pre-commit-config.yaml",
+  "**/*install*hook*.{sh,bash,py}",
+];
+const LINT_CONFIGS = [
+  "**/.golangci.{yml,yaml,toml,json}",
+  "**/{eslint.config.*,.eslintrc,.eslintrc.*}",
+  "**/biome.{json,jsonc}",
+  "**/{pyproject.toml,ruff.toml,.ruff.toml}",
+  "**/.semgrep.{yml,yaml}",
+  "**/.semgrep/**/*.{yml,yaml}",
+];
 const LINT_RULE_LINE = /pattern:|msg:|no-restricted|noRestricted|banned-api|depguard|forbidigo|ruleguard|message:/;
 const CI_FILES = [".github/workflows/*.{yml,yaml}", ".gitlab-ci.yml", ".circleci/config.yml"];
 const CHECK_SCRIPTS = ["**/{check,verify,lint,guard,assert}-*.{sh,py,pl,ts,js,go}", "**/*-guard.{sh,py,pl,ts,js}"];
@@ -277,7 +318,10 @@ async function enforcersContext(repoPath: string): Promise<string> {
   const configs = await glob(LINT_CONFIGS, 4);
   const rules: string[] = [];
   for (const [i, text] of (await readAll(repoPath, configs)).entries()) {
-    const lines = text.split("\n").map((l) => l.trim()).filter((l) => LINT_RULE_LINE.test(l));
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => LINT_RULE_LINE.test(l));
     if (lines.length > 0) rules.push(`${configs[i]}:\n${lines.join("\n")}`);
   }
   const ci = await glob(CI_FILES, 3);
@@ -343,8 +387,7 @@ export const COMMENT_LIMIT = 0.1;
 /** Workaround comments per 1,000 lines above this fail workaround-comments. */
 export const WORKAROUND_LIMIT = 1;
 
-const WORKAROUND =
-  /\b(workaround|for now|temporar(y|ily)|hack(y|ish)?|quick fix|in case it|larger change|do not remove|don't remove)\b/i;
+const WORKAROUND = /\b(workaround|for now|temporar(y|ily)|hack(y|ish)?|quick fix|in case it|larger change|do not remove|don't remove)\b/i;
 
 interface FileComments {
   file: string;

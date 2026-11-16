@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { MaturityLevel, Pillar, PillarScore, ReportData } from "../types/index.js";
 import { overallPercentage } from "../renderer/index.js";
+import type { MaturityLevel, Pillar, PillarScore, ReportData } from "../types/index.js";
 import { CRITERION_INFO, EFFORT_MAP } from "./recommender.js";
 
 export interface Snapshot {

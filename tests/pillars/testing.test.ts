@@ -1,12 +1,6 @@
-import { describe, test, expect, afterEach } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import testing from "../../src/pillars/testing.js";
-import {
-  createTestDir,
-  cleanup,
-  writeFixtures,
-  mockProjectInfo,
-  getCheck,
-} from "../helpers.js";
+import { cleanup, createTestDir, getCheck, mockProjectInfo, writeFixtures } from "../helpers.js";
 
 let dirs: string[] = [];
 

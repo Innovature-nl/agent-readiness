@@ -1,14 +1,8 @@
-import { describe, test, expect, afterEach } from "bun:test";
-import type { MaturityLevel } from "../../src/types/index.js";
-import {
-  type Snapshot,
-  saveSnapshot,
-  loadHistory,
-  diffSnapshots,
-  summarizeOrg,
-} from "../../src/engine/history.js";
-import { createTestDir, cleanup } from "../helpers.js";
+import { afterEach, describe, expect, test } from "bun:test";
+import { diffSnapshots, loadHistory, type Snapshot, saveSnapshot, summarizeOrg } from "../../src/engine/history.js";
 import { ALL_PILLARS } from "../../src/pillars/index.js";
+import type { MaturityLevel } from "../../src/types/index.js";
+import { cleanup, createTestDir } from "../helpers.js";
 
 let dirs: string[] = [];
 
@@ -64,7 +58,10 @@ describe("history", () => {
 
     // (4 + 1) / 2 = 2.5, rounded down
     expect(summary.orgLevel).toBe(2);
-    expect(summary.repos.map((r) => [r.repoName, r.levelDelta])).toEqual([["web", null], ["api", 2]]);
+    expect(summary.repos.map((r) => [r.repoName, r.levelDelta])).toEqual([
+      ["web", null],
+      ["api", 2],
+    ]);
     expect(summary.criteria).toEqual([]);
     expect(summary.repos.find((r) => r.repoName === "api")?.history).toEqual([
       { date: "2026-11-01", level: 2 },

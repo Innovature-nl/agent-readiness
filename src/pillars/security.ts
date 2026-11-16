@@ -1,32 +1,22 @@
+import fg from "fast-glob";
 import type { Pillar } from "../types/index.js";
 import { fileExists, readFileContent } from "./utils.js";
-import fg from "fast-glob";
 
 const security: Pillar = {
   id: "security",
   name: "Security",
-  description:
-    "Evaluates the project's security posture including licensing, vulnerability scanning, and secret detection.",
+  description: "Evaluates the project's security posture including licensing, vulnerability scanning, and secret detection.",
   icon: "\uD83D\uDD12",
   criteria: [
     {
       id: "license",
       name: "License file present",
-      description:
-        "A LICENSE file exists in the repository root.",
+      description: "A LICENSE file exists in the repository root.",
       pillarId: "security",
       level: 1,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "LICENSE",
-          "LICENSE.md",
-          "LICENSE.txt",
-          "LICENCE",
-          "LICENCE.md",
-          "LICENCE.txt",
-        );
+        const found = await fileExists(repoPath, "LICENSE", "LICENSE.md", "LICENSE.txt", "LICENCE", "LICENCE.md", "LICENCE.txt");
         if (found) {
           return {
             criterionId: "license",
@@ -38,16 +28,14 @@ const security: Pillar = {
           criterionId: "license",
           pass: false,
           message: "No license file found.",
-          details:
-            "Add a LICENSE file to clarify how the code can be used and distributed.",
+          details: "Add a LICENSE file to clarify how the code can be used and distributed.",
         };
       },
     },
     {
       id: "security-scanning",
       name: "Security scanning in CI",
-      description:
-        "CI workflows include security scanning tools (CodeQL, Snyk, Trivy, Semgrep).",
+      description: "CI workflows include security scanning tools (CodeQL, Snyk, Trivy, Semgrep).",
       pillarId: "security",
       level: 4,
       requiresLLM: false,
@@ -57,13 +45,9 @@ const security: Pillar = {
         }
 
         // Check CI workflows for security scanning tools
-        const ciFiles = await fg(
-          [".github/workflows/*.yml", ".github/workflows/*.yaml"],
-          { cwd: repoPath, absolute: false, dot: true },
-        );
+        const ciFiles = await fg([".github/workflows/*.yml", ".github/workflows/*.yaml"], { cwd: repoPath, absolute: false, dot: true });
 
-        const scanPatterns =
-          /\b(codeql|snyk|trivy|semgrep|sonarqube|sonarcloud|dependabot|security[_-]scan|sast)\b/i;
+        const scanPatterns = /\b(codeql|snyk|trivy|semgrep|sonarqube|sonarcloud|dependabot|security[_-]scan|sast)\b/i;
 
         for (const ciFile of ciFiles) {
           const content = await readFileContent(repoPath, ciFile);
@@ -100,10 +84,7 @@ const security: Pillar = {
         for (const gradleFile of ["build.gradle.kts", "build.gradle"]) {
           const gradleContent = await readFileContent(repoPath, gradleFile);
           if (gradleContent) {
-            if (
-              gradleContent.includes("org.owasp.dependencycheck") ||
-              gradleContent.includes("dependency-check")
-            ) {
+            if (gradleContent.includes("org.owasp.dependencycheck") || gradleContent.includes("dependency-check")) {
               return {
                 criterionId: "security-scanning",
                 pass: true,
@@ -133,10 +114,7 @@ const security: Pillar = {
           };
         }
         // Check CI for cargo audit
-        const ciFilesSec = await fg(
-          [".github/workflows/*.yml", ".github/workflows/*.yaml"],
-          { cwd: repoPath, absolute: false, dot: true },
-        );
+        const ciFilesSec = await fg([".github/workflows/*.yml", ".github/workflows/*.yaml"], { cwd: repoPath, absolute: false, dot: true });
         for (const ciFile of ciFilesSec) {
           const content = await readFileContent(repoPath, ciFile);
           if (content && /\bcargo[\s-]audit\b/i.test(content)) {
@@ -152,10 +130,10 @@ const security: Pillar = {
         const csprojSecFiles = await fg("**/*.csproj", { cwd: repoPath, absolute: false, ignore: ["node_modules/**", "vendor/**"] });
         for (const csproj of csprojSecFiles) {
           const csprojContent = await readFileContent(repoPath, csproj);
-          if (csprojContent && (
-            csprojContent.includes("Microsoft.CodeAnalysis.NetAnalyzers") ||
-            csprojContent.includes("SecurityCodeScan")
-          )) {
+          if (
+            csprojContent &&
+            (csprojContent.includes("Microsoft.CodeAnalysis.NetAnalyzers") || csprojContent.includes("SecurityCodeScan"))
+          ) {
             return {
               criterionId: "security-scanning",
               pass: true,
@@ -176,10 +154,7 @@ const security: Pillar = {
 
         // Check composer.json for PHP security tools
         const composerSec = await readFileContent(repoPath, "composer.json");
-        if (composerSec && (
-          composerSec.includes("roave/security-advisories") ||
-          composerSec.includes("enlightn/security-checker")
-        )) {
+        if (composerSec && (composerSec.includes("roave/security-advisories") || composerSec.includes("enlightn/security-checker"))) {
           return {
             criterionId: "security-scanning",
             pass: true,
@@ -199,8 +174,7 @@ const security: Pillar = {
     {
       id: "secrets-detection",
       name: "Secrets detection configured",
-      description:
-        "A secrets detection tool is configured (gitleaks, detect-secrets, or similar).",
+      description: "A secrets detection tool is configured (gitleaks, detect-secrets, or similar).",
       pillarId: "security",
       level: 4,
       requiresLLM: false,
@@ -225,38 +199,23 @@ const security: Pillar = {
         }
 
         // Check .pre-commit-config.yaml for detect-secrets or gitleaks
-        const precommitContent = await readFileContent(
-          repoPath,
-          ".pre-commit-config.yaml",
-        );
+        const precommitContent = await readFileContent(repoPath, ".pre-commit-config.yaml");
         if (precommitContent) {
-          if (
-            precommitContent.includes("detect-secrets") ||
-            precommitContent.includes("gitleaks")
-          ) {
+          if (precommitContent.includes("detect-secrets") || precommitContent.includes("gitleaks")) {
             return {
               criterionId: "secrets-detection",
               pass: true,
-              message:
-                "Secrets detection hook found in .pre-commit-config.yaml",
+              message: "Secrets detection hook found in .pre-commit-config.yaml",
             };
           }
         }
 
         // Check CI workflows for secrets detection
-        const ciFiles = await fg(
-          [".github/workflows/*.yml", ".github/workflows/*.yaml"],
-          { cwd: repoPath, absolute: false, dot: true },
-        );
+        const ciFiles = await fg([".github/workflows/*.yml", ".github/workflows/*.yaml"], { cwd: repoPath, absolute: false, dot: true });
 
         for (const ciFile of ciFiles) {
           const content = await readFileContent(repoPath, ciFile);
-          if (
-            content &&
-            /\b(gitleaks|detect-secrets|trufflehog|git-secrets)\b/i.test(
-              content,
-            )
-          ) {
+          if (content && /\b(gitleaks|detect-secrets|trufflehog|git-secrets)\b/i.test(content)) {
             return {
               criterionId: "secrets-detection",
               pass: true,
@@ -269,25 +228,19 @@ const security: Pillar = {
           criterionId: "secrets-detection",
           pass: false,
           message: "No secrets detection tool configured.",
-          details:
-            "Add gitleaks, detect-secrets, or trufflehog to prevent secrets from being committed.",
+          details: "Add gitleaks, detect-secrets, or trufflehog to prevent secrets from being committed.",
         };
       },
     },
     {
       id: "security-policy",
       name: "Security policy",
-      description:
-        "A SECURITY.md file exists outlining the security disclosure process.",
+      description: "A SECURITY.md file exists outlining the security disclosure process.",
       pillarId: "security",
       level: 3,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "SECURITY.md",
-          ".github/SECURITY.md",
-        );
+        const found = await fileExists(repoPath, "SECURITY.md", ".github/SECURITY.md");
         if (found) {
           return {
             criterionId: "security-policy",
@@ -299,16 +252,14 @@ const security: Pillar = {
           criterionId: "security-policy",
           pass: false,
           message: "No security policy found.",
-          details:
-            "Add a SECURITY.md to document how to report security vulnerabilities.",
+          details: "Add a SECURITY.md to document how to report security vulnerabilities.",
         };
       },
     },
     {
       id: "dep-update-automation",
       name: "Dependency update automation",
-      description:
-        "Automated dependency updates are configured (Dependabot, Renovate).",
+      description: "Automated dependency updates are configured (Dependabot, Renovate).",
       pillarId: "security",
       level: 3,
       requiresLLM: false,
@@ -337,10 +288,7 @@ const security: Pillar = {
         for (const gradleFile of ["build.gradle.kts", "build.gradle"]) {
           const gradleContent = await readFileContent(repoPath, gradleFile);
           if (gradleContent) {
-            if (
-              gradleContent.includes("com.github.ben-manes.versions") ||
-              gradleContent.includes("version-catalog-update")
-            ) {
+            if (gradleContent.includes("com.github.ben-manes.versions") || gradleContent.includes("version-catalog-update")) {
               return {
                 criterionId: "dep-update-automation",
                 pass: true,
@@ -354,8 +302,7 @@ const security: Pillar = {
           criterionId: "dep-update-automation",
           pass: false,
           message: "No dependency update automation found.",
-          details:
-            "Add Dependabot, Renovate, or Gradle versions plugin to automatically keep dependencies up to date.",
+          details: "Add Dependabot, Renovate, or Gradle versions plugin to automatically keep dependencies up to date.",
         };
       },
     },

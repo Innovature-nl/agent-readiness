@@ -1,7 +1,7 @@
-import os from "node:os";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
-import type { ProjectInfo, Pillar } from "../src/types/index.js";
+import type { Pillar, ProjectInfo } from "../src/types/index.js";
 
 export async function createTestDir(name: string): Promise<string> {
   const dir = path.join(os.tmpdir(), `agent-readiness-test-${name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
@@ -13,10 +13,7 @@ export async function cleanup(dir: string): Promise<void> {
   await fs.rm(dir, { recursive: true, force: true });
 }
 
-export async function writeFixtures(
-  dir: string,
-  fixtures: Record<string, string>,
-): Promise<void> {
+export async function writeFixtures(dir: string, fixtures: Record<string, string>): Promise<void> {
   for (const [filePath, content] of Object.entries(fixtures)) {
     const full = path.join(dir, filePath);
     await fs.mkdir(path.dirname(full), { recursive: true });

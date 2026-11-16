@@ -1,13 +1,7 @@
-import chalk from "chalk";
 import boxen from "boxen";
+import chalk from "chalk";
 import Table from "cli-table3";
-import type {
-  ReportData,
-  RenderOptions,
-  PillarScore,
-  Pillar,
-  MaturityLevel,
-} from "../types/index.js";
+import type { MaturityLevel, Pillar, PillarScore, RenderOptions, ReportData } from "../types/index.js";
 import { LEVEL_LABELS } from "../types/index.js";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -42,9 +36,7 @@ function getLevelColor(level: MaturityLevel): typeof chalk {
   }
 }
 
-function getLevelBorderColor(
-  level: MaturityLevel,
-): "red" | "yellow" | "green" | "blue" | "magenta" {
+function getLevelBorderColor(level: MaturityLevel): "red" | "yellow" | "green" | "blue" | "magenta" {
   switch (level) {
     case 1:
       return "red";
@@ -85,38 +77,28 @@ export function overallPercentage(pillarScores: PillarScore[]): number {
 // ─── Section Renderers ──────────────────────────────────────────────────────
 
 function renderHeader(data: ReportData, ci: boolean): void {
-  const types =
-    data.projectInfo.detectedTypes.length > 0
-      ? data.projectInfo.detectedTypes.join(", ")
-      : "unknown";
-  const monorepoTag = data.projectInfo.isMonorepo
-    ? chalk.cyan(" [monorepo]")
-    : "";
+  const types = data.projectInfo.detectedTypes.length > 0 ? data.projectInfo.detectedTypes.join(", ") : "unknown";
+  const monorepoTag = data.projectInfo.isMonorepo ? chalk.cyan(" [monorepo]") : "";
 
   if (ci) {
     console.log("=== AGENT READINESS ===");
     console.log(`Repository: ${data.repoName}`);
     console.log(`Path: ${data.repoPath}`);
-    console.log(
-      `Project types: ${types}${data.projectInfo.isMonorepo ? " [monorepo]" : ""}`,
-    );
+    console.log(`Project types: ${types}${data.projectInfo.isMonorepo ? " [monorepo]" : ""}`);
     console.log("");
     return;
   }
 
   const title = chalk.bold.white("AGENT READINESS");
   const subtitle = chalk.gray(`${data.repoName}  ${chalk.dim(data.repoPath)}`);
-  const projectLine =
-    chalk.white("Project: ") + chalk.cyan.bold(types) + monorepoTag;
+  const projectLine = chalk.white("Project: ") + chalk.cyan.bold(types) + monorepoTag;
 
   const packagesLine =
     data.projectInfo.isMonorepo && data.projectInfo.packages.length > 0
       ? "\n" +
         chalk.white("Packages: ") +
         chalk.dim(data.projectInfo.packages.slice(0, 5).join(", ")) +
-        (data.projectInfo.packages.length > 5
-          ? chalk.dim(` +${data.projectInfo.packages.length - 5} more`)
-          : "")
+        (data.projectInfo.packages.length > 5 ? chalk.dim(` +${data.projectInfo.packages.length - 5} more`) : "")
       : "";
 
   const content = `${title}\n${subtitle}\n\n${projectLine}${packagesLine}`;
@@ -140,9 +122,7 @@ function renderLevelBadge(data: ReportData, ci: boolean): void {
   if (ci) {
     console.log(`Level: ${level} - ${label}`);
     if (nextLevelProgress.nextLevel !== null) {
-      console.log(
-        `Progress: ${nextLevelProgress.remaining} more criteria to reach Level ${nextLevelProgress.nextLevel}`,
-      );
+      console.log(`Progress: ${nextLevelProgress.remaining} more criteria to reach Level ${nextLevelProgress.nextLevel}`);
     }
     console.log(`Overall: ${plainProgressBar(overall)} ${overall}%`);
     console.log("");
@@ -152,17 +132,11 @@ function renderLevelBadge(data: ReportData, ci: boolean): void {
   const colorFn = getLevelColor(level);
   const borderColor = getLevelBorderColor(level);
 
-  const levelText = colorFn.bold(
-    `  LEVEL ${level}  ${chalk.dim("-")}  ${label}  `,
-  );
+  const levelText = colorFn.bold(`  LEVEL ${level}  ${chalk.dim("-")}  ${label}  `);
 
   let progressLine = "";
   if (nextLevelProgress.nextLevel !== null) {
-    progressLine =
-      "\n" +
-      chalk.dim(
-        `${nextLevelProgress.remaining} more criteria to reach Level ${nextLevelProgress.nextLevel}`,
-      );
+    progressLine = "\n" + chalk.dim(`${nextLevelProgress.remaining} more criteria to reach Level ${nextLevelProgress.nextLevel}`);
   } else {
     progressLine = "\n" + chalk.green.bold("Maximum level achieved!");
   }
@@ -188,20 +162,14 @@ function renderPillarSummary(data: ReportData, ci: boolean): void {
     for (const score of data.pillarScores) {
       const pillar = findPillar(data.pillars, score.pillarId);
       const name = pillar ? pillar.name : score.pillarId;
-      console.log(
-        `  ${name}: ${plainProgressBar(score.percentage, 15)} ${score.percentage}% (${score.passed}/${score.total})`,
-      );
+      console.log(`  ${name}: ${plainProgressBar(score.percentage, 15)} ${score.percentage}% (${score.passed}/${score.total})`);
     }
     console.log("");
     return;
   }
 
   console.log("");
-  console.log(
-    chalk.bold.white("  +- ") +
-      chalk.bold.cyan("PILLAR SUMMARY") +
-      chalk.bold.white(" -".repeat(20)),
-  );
+  console.log(chalk.bold.white("  +- ") + chalk.bold.cyan("PILLAR SUMMARY") + chalk.bold.white(" -".repeat(20)));
   console.log("");
 
   const table = new Table({
@@ -228,12 +196,7 @@ function renderPillarSummary(data: ReportData, ci: boolean): void {
       "padding-left": 1,
       "padding-right": 1,
     },
-    head: [
-      chalk.bold.cyan("Pillar"),
-      chalk.bold.cyan("Score"),
-      chalk.bold.cyan("%"),
-      chalk.bold.cyan("Pass/Total"),
-    ],
+    head: [chalk.bold.cyan("Pillar"), chalk.bold.cyan("Score"), chalk.bold.cyan("%"), chalk.bold.cyan("Pass/Total")],
     colWidths: [30, 24, 8, 12],
   });
 
@@ -251,12 +214,7 @@ function renderPillarSummary(data: ReportData, ci: boolean): void {
 
     const passTotal = chalk.white(`${score.passed}/${score.total}`);
 
-    table.push([
-      `${icon}  ${chalk.white(name)}`,
-      progressBar(score.percentage, 18),
-      percentStr,
-      passTotal,
-    ]);
+    table.push([`${icon}  ${chalk.white(name)}`, progressBar(score.percentage, 18), percentStr, passTotal]);
   }
 
   console.log(table.toString());
@@ -285,11 +243,7 @@ function renderDetailedBreakdown(data: ReportData, ci: boolean): void {
     return;
   }
 
-  console.log(
-    chalk.bold.white("  +- ") +
-      chalk.bold.cyan("DETAILED BREAKDOWN") +
-      chalk.bold.white(" -".repeat(19)),
-  );
+  console.log(chalk.bold.white("  +- ") + chalk.bold.cyan("DETAILED BREAKDOWN") + chalk.bold.white(" -".repeat(19)));
 
   for (const pillar of data.pillars) {
     const results = data.results.get(pillar.id) || [];
@@ -297,17 +251,13 @@ function renderDetailedBreakdown(data: ReportData, ci: boolean): void {
     const total = results.length;
 
     console.log("");
-    console.log(
-      `  ${pillar.icon}  ${chalk.bold.white(pillar.name)}  ${chalk.dim("---")}  ${chalk.dim(`${passed}/${total} passing`)}`,
-    );
+    console.log(`  ${pillar.icon}  ${chalk.bold.white(pillar.name)}  ${chalk.dim("---")}  ${chalk.dim(`${passed}/${total} passing`)}`);
     console.log("");
 
     for (const r of results) {
       if (r.skipped) {
         const icon = chalk.cyan("o");
-        console.log(
-          `    ${icon}  ${chalk.dim(r.message)}  ${chalk.cyan.dim("(requires --ai)")}`,
-        );
+        console.log(`    ${icon}  ${chalk.dim(r.message)}  ${chalk.cyan.dim("(requires --ai)")}`);
       } else if (r.pass) {
         const icon = chalk.green.bold("*");
         console.log(`    ${icon}  ${chalk.white(r.message)}`);
@@ -342,9 +292,7 @@ function renderRecommendations(data: ReportData, ci: boolean): void {
     data.recommendations.forEach((rec, i) => {
       const pillar = findPillar(data.pillars, rec.pillarId);
       const pillarName = pillar ? pillar.name : rec.pillarId;
-      console.log(
-        `  ${i + 1}. ${rec.title} [${rec.effort}] [${pillarName}]`,
-      );
+      console.log(`  ${i + 1}. ${rec.title} [${rec.effort}] [${pillarName}]`);
       console.log(`     ${rec.description}`);
       if (rec.reason) {
         console.log(`     Reason: ${rec.reason}`);
@@ -356,9 +304,7 @@ function renderRecommendations(data: ReportData, ci: boolean): void {
 
   if (data.recommendations.length === 0) {
     const content =
-      chalk.green.bold("All checks passing!") +
-      "\n\n" +
-      chalk.white("Your repository is fully agent-ready. Congratulations!");
+      chalk.green.bold("All checks passing!") + "\n\n" + chalk.white("Your repository is fully agent-ready. Congratulations!");
 
     console.log(
       boxen(content, {
@@ -372,11 +318,7 @@ function renderRecommendations(data: ReportData, ci: boolean): void {
     return;
   }
 
-  console.log(
-    chalk.bold.white("  +- ") +
-      chalk.bold.cyan("TOP RECOMMENDATIONS") +
-      chalk.bold.white(" -".repeat(19)),
-  );
+  console.log(chalk.bold.white("  +- ") + chalk.bold.cyan("TOP RECOMMENDATIONS") + chalk.bold.white(" -".repeat(19)));
   console.log("");
 
   data.recommendations.forEach((rec, i) => {
@@ -405,21 +347,15 @@ function renderFooter(data: ReportData, ci: boolean): void {
 
   console.log("");
 
-  const hasSkipped = Array.from(data.results.values()).some((results) =>
-    results.some((r) => r.skipped),
-  );
+  const hasSkipped = Array.from(data.results.values()).some((results) => results.some((r) => r.skipped));
 
   const lines: string[] = [];
 
   if (hasSkipped) {
     lines.push(
-      chalk.yellow("!") +
-        chalk.dim("  Run with ") +
-        chalk.yellow.bold("--ai") +
-        chalk.dim(" for deeper analysis with LLM-powered checks"),
+      chalk.yellow("!") + chalk.dim("  Run with ") + chalk.yellow.bold("--ai") + chalk.dim(" for deeper analysis with LLM-powered checks"),
     );
   }
-
 
   console.log(lines.join("\n"));
   console.log("");

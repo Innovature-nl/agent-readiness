@@ -96,8 +96,7 @@ export function createLLMClient(options: LLMClientOptions): LLMClient {
         ...(parsed.details != null ? { details: parsed.details } : {}),
       };
     } catch (error: unknown) {
-      const errMessage =
-        error instanceof Error ? error.message : String(error);
+      const errMessage = error instanceof Error ? error.message : String(error);
       return {
         pass: false,
         message: `LLM evaluation failed: ${errMessage}`,
@@ -129,21 +128,31 @@ export function createClaudeCliClient(options: { model?: string; bin?: string } 
         bin,
         [
           "-p",
-          "--model", model,
-          "--tools", "",
-          "--setting-sources", "",
+          "--model",
+          model,
+          "--tools",
+          "",
+          "--setting-sources",
+          "",
           "--strict-mcp-config",
           "--disable-slash-commands",
           "--no-session-persistence",
-          "--output-format", "json",
-          "--json-schema", RESULT_SCHEMA,
-          "--system-prompt", SYSTEM_PROMPT,
+          "--output-format",
+          "json",
+          "--json-schema",
+          RESULT_SCHEMA,
+          "--system-prompt",
+          SYSTEM_PROMPT,
         ],
         // A neutral cwd keeps CLAUDE.md files of the scanned or current repo out of the prompt.
         { cwd: os.tmpdir(), timeout: 180_000, maxBuffer: 20 * 1024 * 1024 },
         (error, stdout) => {
           try {
-            const out = JSON.parse(stdout) as { is_error?: boolean; result?: string; structured_output?: { pass: boolean; message: string; details?: string } };
+            const out = JSON.parse(stdout) as {
+              is_error?: boolean;
+              result?: string;
+              structured_output?: { pass: boolean; message: string; details?: string };
+            };
             if (out.is_error || !out.structured_output) {
               resolve({ pass: false, message: `Claude CLI evaluation failed: ${out.result ?? "no structured output"}` });
               return;

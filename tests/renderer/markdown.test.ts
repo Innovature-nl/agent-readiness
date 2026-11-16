@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import { renderMarkdown } from "../../src/renderer/markdown.js";
+import { describe, expect, test } from "bun:test";
 import type { SerializedReportData } from "../../src/engine/serializer.js";
+import { renderMarkdown } from "../../src/renderer/markdown.js";
 
 const report: SerializedReportData = {
   repoName: "btcdirect",
@@ -14,7 +14,14 @@ const report: SerializedReportData = {
       icon: "🎨",
       criteria: [
         { id: "linter", name: "Linter configured", description: "", pillarId: "style-linting", level: 2, requiresLLM: false },
-        { id: "naming-conventions", name: "Naming conventions (AI)", description: "", pillarId: "style-linting", level: 5, requiresLLM: true },
+        {
+          id: "naming-conventions",
+          name: "Naming conventions (AI)",
+          description: "",
+          pillarId: "style-linting",
+          level: 5,
+          requiresLLM: true,
+        },
       ],
     },
     {
@@ -22,7 +29,16 @@ const report: SerializedReportData = {
       name: "Documentation",
       description: "",
       icon: "📚",
-      criteria: [{ id: "enforced-agent-rules", name: "Agent rules are enforced (AI)", description: "", pillarId: "documentation", level: 5, requiresLLM: true }],
+      criteria: [
+        {
+          id: "enforced-agent-rules",
+          name: "Agent rules are enforced (AI)",
+          description: "",
+          pillarId: "documentation",
+          level: 5,
+          requiresLLM: true,
+        },
+      ],
     },
   ],
   results: {
@@ -31,7 +47,12 @@ const report: SerializedReportData = {
       { criterionId: "naming-conventions", pass: false, message: "", skipped: true },
     ],
     documentation: [
-      { criterionId: "enforced-agent-rules", pass: false, message: "0 of 6 parts pass.", details: `Part 1:\n${"- Never do x.\n".repeat(40)}` },
+      {
+        criterionId: "enforced-agent-rules",
+        pass: false,
+        message: "0 of 6 parts pass.",
+        details: `Part 1:\n${"- Never do x.\n".repeat(40)}`,
+      },
     ],
   },
   levelResult: { level: 3, nextLevelProgress: { current: 9, needed: 10, remaining: 1, nextLevel: 4 } },
@@ -40,7 +61,15 @@ const report: SerializedReportData = {
     { pillarId: "documentation", passed: 0, total: 1, percentage: 0 },
   ],
   recommendations: [
-    { title: "Agent rules are enforced (AI)", description: "Back every hard rule with a check", reason: "Nothing fails when an agent skips a sentence", effort: "medium", impact: "medium", pillarId: "documentation", criterionId: "enforced-agent-rules" },
+    {
+      title: "Agent rules are enforced (AI)",
+      description: "Back every hard rule with a check",
+      reason: "Nothing fails when an agent skips a sentence",
+      effort: "medium",
+      impact: "medium",
+      pillarId: "documentation",
+      criterionId: "enforced-agent-rules",
+    },
   ],
 };
 
@@ -72,6 +101,8 @@ describe("renderMarkdown", () => {
 
   test("ends with the recommendations", () => {
     expect(md).toContain("## Top recommendations");
-    expect(md).toContain("1. **Agent rules are enforced (AI)** (impact medium, Documentation): Back every hard rule with a check. Nothing fails when an agent skips a sentence");
+    expect(md).toContain(
+      "1. **Agent rules are enforced (AI)** (impact medium, Documentation): Back every hard rule with a check. Nothing fails when an agent skips a sentence",
+    );
   });
 });

@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import type { Pillar } from "../../src/types/index.js";
+import { describe, expect, test } from "bun:test";
 import { applyProfile, parseProfile } from "../../src/pillars/profiles.js";
+import type { Pillar } from "../../src/types/index.js";
 
 const info = { languages: [], frameworks: [], packageManager: null, isMonorepo: false } as never;
 
@@ -27,7 +27,19 @@ describe("profiles", () => {
   });
 
   test("internal drops open-source checks and accepts the alternative", async () => {
-    const [p] = applyProfile([pillar({ license: false, "security-policy": false, contributing: false, "ai-context": true, editorconfig: false, formatter: false })], "internal");
+    const [p] = applyProfile(
+      [
+        pillar({
+          license: false,
+          "security-policy": false,
+          contributing: false,
+          "ai-context": true,
+          editorconfig: false,
+          formatter: false,
+        }),
+      ],
+      "internal",
+    );
     expect(p.criteria.map((c) => c.id)).toEqual(["contributing", "ai-context", "editorconfig", "formatter"]);
 
     const contributing = await p.criteria[0].check("/", info);

@@ -102,7 +102,7 @@ async function detectTypes(repoPath: string): Promise<string[]> {
 
     // Check pom.xml for kotlin-maven-plugin
     const pomXml = path.join(repoPath, "pom.xml");
-    if (!detected.includes("kotlin") && await fileExists(pomXml)) {
+    if (!detected.includes("kotlin") && (await fileExists(pomXml))) {
       try {
         const content = await fs.readFile(pomXml, "utf-8");
         if (content.includes("kotlin-maven-plugin") || content.includes("org.jetbrains.kotlin")) {
@@ -129,10 +129,7 @@ interface MonorepoResult {
 /**
  * Resolve workspace glob patterns into actual directory paths.
  */
-async function resolveWorkspaceGlobs(
-  repoPath: string,
-  patterns: string[],
-): Promise<string[]> {
+async function resolveWorkspaceGlobs(repoPath: string, patterns: string[]): Promise<string[]> {
   // Normalise patterns: ensure each one targets directories by appending
   // /package.json so fast-glob only returns real package folders.
   const globPatterns = patterns.map((p) => {
@@ -173,9 +170,7 @@ async function detectMonorepo(repoPath: string): Promise<MonorepoResult> {
   }>(path.join(repoPath, "package.json"));
 
   if (pkgJson?.workspaces) {
-    const patterns = Array.isArray(pkgJson.workspaces)
-      ? pkgJson.workspaces
-      : pkgJson.workspaces.packages ?? [];
+    const patterns = Array.isArray(pkgJson.workspaces) ? pkgJson.workspaces : (pkgJson.workspaces.packages ?? []);
 
     if (patterns.length > 0) {
       const packages = await resolveWorkspaceGlobs(repoPath, patterns);
@@ -210,11 +205,7 @@ async function detectMonorepo(repoPath: string): Promise<MonorepoResult> {
   // 4. Nx ---------------------------------------------------------------------
   if (await fileExists(path.join(repoPath, "nx.json"))) {
     // Nx projects can live anywhere; try common conventions
-    const packages = await resolveWorkspaceGlobs(repoPath, [
-      "packages",
-      "apps",
-      "libs",
-    ]);
+    const packages = await resolveWorkspaceGlobs(repoPath, ["packages", "apps", "libs"]);
     return { isMonorepo: true, packages };
   }
 
@@ -223,10 +214,7 @@ async function detectMonorepo(repoPath: string): Promise<MonorepoResult> {
     // Turbo relies on the workspace config from the package manager, which
     // we already checked above. If we reach here, just flag as monorepo.
     // Attempt common conventions as a fallback.
-    const packages = await resolveWorkspaceGlobs(repoPath, [
-      "packages",
-      "apps",
-    ]);
+    const packages = await resolveWorkspaceGlobs(repoPath, ["packages", "apps"]);
     return { isMonorepo: true, packages };
   }
 
@@ -240,10 +228,7 @@ async function detectMonorepo(repoPath: string): Promise<MonorepoResult> {
 export async function detectProject(repoPath: string): Promise<ProjectInfo> {
   const absolutePath = path.resolve(repoPath);
 
-  const [detectedTypes, monorepo] = await Promise.all([
-    detectTypes(absolutePath),
-    detectMonorepo(absolutePath),
-  ]);
+  const [detectedTypes, monorepo] = await Promise.all([detectTypes(absolutePath), detectMonorepo(absolutePath)]);
 
   return {
     detectedTypes,

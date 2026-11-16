@@ -1,13 +1,8 @@
-import type { Pillar } from "../types/index.js";
-import { guardrailCodeHealthCriteria } from "./guardrails.js";
-import {
-  fileExists,
-  readFileContent,
-  getFileMtimeMs,
-  packageJsonHas,
-} from "./utils.js";
 import fg from "fast-glob";
 import YAML from "yaml";
+import type { Pillar } from "../types/index.js";
+import { guardrailCodeHealthCriteria } from "./guardrails.js";
+import { fileExists, getFileMtimeMs, packageJsonHas, readFileContent } from "./utils.js";
 
 const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
 
@@ -29,15 +24,13 @@ export function golangciRunsUnused(config: unknown): boolean {
 const codeHealth: Pillar = {
   id: "code-health",
   name: "Code Health",
-  description:
-    "Measures ongoing code health signals such as dependency freshness, dead code detection, and bundle analysis.",
+  description: "Measures ongoing code health signals such as dependency freshness, dead code detection, and bundle analysis.",
   icon: "\uD83D\uDC9A",
   criteria: [
     {
       id: "no-outdated-deps",
       name: "Dependencies recently updated",
-      description:
-        "If a package.json exists, the lock file was modified within the last 6 months (heuristic for freshness).",
+      description: "If a package.json exists, the lock file was modified within the last 6 months (heuristic for freshness).",
       pillarId: "code-health",
       level: 3,
       requiresLLM: false,
@@ -80,8 +73,7 @@ const codeHealth: Pillar = {
                 criterionId: "no-outdated-deps",
                 pass: false,
                 message: `${lockFile} was last modified ~${monthsAgo} month(s) ago`,
-                details:
-                  "Run dependency updates regularly to avoid security vulnerabilities and incompatibilities.",
+                details: "Run dependency updates regularly to avoid security vulnerabilities and incompatibilities.",
               };
             }
           }
@@ -115,28 +107,20 @@ const codeHealth: Pillar = {
           criterionId: "no-outdated-deps",
           pass: false,
           message: "Project manifest found but no lock file or recent build file detected.",
-          details:
-            "Add and commit a lock file to track dependency versions.",
+          details: "Add and commit a lock file to track dependency versions.",
         };
       },
     },
     {
       id: "dead-code-detection",
       name: "Dead code detection configured",
-      description:
-        "A tool for detecting dead/unused code is configured (knip, .deadcode, eslint unused-exports).",
+      description: "A tool for detecting dead/unused code is configured (knip, .deadcode, eslint unused-exports).",
       pillarId: "code-health",
       level: 4,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
         // Check for knip configuration
-        const knipFound = await fileExists(
-          repoPath,
-          "knip.json",
-          "knip.ts",
-          "knip.config.ts",
-          ".knip.json",
-        );
+        const knipFound = await fileExists(repoPath, "knip.json", "knip.ts", "knip.config.ts", ".knip.json");
         if (knipFound) {
           return {
             criterionId: "dead-code-detection",
@@ -281,14 +265,7 @@ const codeHealth: Pillar = {
         }
 
         // Check ESLint config for unused-exports plugin
-        const eslintFiles = [
-          ".eslintrc",
-          ".eslintrc.js",
-          ".eslintrc.cjs",
-          ".eslintrc.json",
-          ".eslintrc.yml",
-          ".eslintrc.yaml",
-        ];
+        const eslintFiles = [".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json", ".eslintrc.yml", ".eslintrc.yaml"];
         for (const eslintFile of eslintFiles) {
           const content = await readFileContent(repoPath, eslintFile);
           if (content && content.includes("unused-exports")) {
@@ -317,16 +294,14 @@ const codeHealth: Pillar = {
           criterionId: "dead-code-detection",
           pass: false,
           message: "No dead code detection tool found.",
-          details:
-            "Add knip, deadcode detection, or eslint-plugin-unused-exports to find unused code.",
+          details: "Add knip, deadcode detection, or eslint-plugin-unused-exports to find unused code.",
         };
       },
     },
     {
       id: "bundle-analysis",
       name: "Bundle analysis configured",
-      description:
-        "Bundle analysis or size limits are configured (webpack-bundle-analyzer, @next/bundle-analyzer, size-limit).",
+      description: "Bundle analysis or size limits are configured (webpack-bundle-analyzer, @next/bundle-analyzer, size-limit).",
       pillarId: "code-health",
       level: 5,
       requiresLLM: false,
@@ -364,12 +339,7 @@ const codeHealth: Pillar = {
         }
 
         // Check for size-limit config
-        const sizeLimitConfig = await fileExists(
-          repoPath,
-          ".size-limit.json",
-          ".size-limit.js",
-          ".size-limit.cjs",
-        );
+        const sizeLimitConfig = await fileExists(repoPath, ".size-limit.json", ".size-limit.js", ".size-limit.cjs");
         if (sizeLimitConfig) {
           return {
             criterionId: "bundle-analysis",
@@ -392,8 +362,7 @@ const codeHealth: Pillar = {
           criterionId: "bundle-analysis",
           pass: false,
           message: "No bundle analysis configuration found.",
-          details:
-            "Add webpack-bundle-analyzer, @next/bundle-analyzer, or size-limit to monitor bundle size.",
+          details: "Add webpack-bundle-analyzer, @next/bundle-analyzer, or size-limit to monitor bundle size.",
         };
       },
     },
