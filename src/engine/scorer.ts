@@ -80,7 +80,9 @@ export function calculateLevel(pillars: Pillar[], results: Map<string, Criterion
   }
 
   // Calculate next level progress
-  const nextLevel: MaturityLevel | null = highestPassed < 5 ? ((highestPassed + 1) as MaturityLevel) : null;
+  // No next level when every level above has no checks left (all N/A or skipped): it cannot be reached.
+  const reachable = levels.some((l) => l > highestPassed && byLevel.get(l)!.length > 0);
+  const nextLevel: MaturityLevel | null = reachable ? ((highestPassed + 1) as MaturityLevel) : null;
 
   let current = 0;
   let needed = 0;

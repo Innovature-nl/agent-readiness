@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import fg from "fast-glob";
+import type { CriterionResult, ProjectInfo } from "../types/index.js";
 
 export async function fileExists(repoPath: string, ...patterns: string[]): Promise<string | null> {
   for (const pattern of patterns) {
@@ -53,4 +54,25 @@ export async function getFileMtimeMs(repoPath: string, filePath: string): Promis
   } catch {
     return null;
   }
+}
+
+type Check = (repoPath: string, projectInfo: ProjectInfo) => Promise<CriterionResult>;
+
+/**
+ * For checks that belong to each package rather than the repository root, such as a lock
+ * file: when the root fails, the check passes if every package passes it on its own.
+ */
+export function rootOrEveryPackage(check: Check): Check {
+  return async (repoPath, projectInfo) => {
+    const root = await check(repoPath, projectInfo);
+    if (root.pass || projectInfo.packages.length === 0) return root;
+    const results = await Promise.all(projectInfo.packages.map((pkg) => check(join(repoPath, pkg), projectInfo)));
+    if (!results.every((r) => r.pass)) return root;
+    return {
+      ...root,
+      pass: true,
+      message: `In every package (${projectInfo.packages.join(", ")}): ${results[0].message}`,
+      details: undefined,
+    };
+  };
 }

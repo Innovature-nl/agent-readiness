@@ -1,7 +1,7 @@
 import fg from "fast-glob";
 import type { Pillar } from "../types/index.js";
 import { guardrailTestingCriteria } from "./guardrails.js";
-import { fileExists, packageJsonHas, readFileContent } from "./utils.js";
+import { fileExists, packageJsonHas, readFileContent, rootOrEveryPackage } from "./utils.js";
 
 const testing: Pillar = {
   id: "testing",
@@ -275,7 +275,7 @@ const testing: Pillar = {
       pillarId: "testing",
       level: 2,
       requiresLLM: false,
-      check: async (repoPath, _projectInfo) => {
+      check: rootOrEveryPackage(async (repoPath, _projectInfo) => {
         const hasTestScript = await packageJsonHas(repoPath, "scripts.test");
         if (hasTestScript) {
           return {
@@ -396,7 +396,7 @@ const testing: Pillar = {
           details:
             'Add a "test" script in package.json, Makefile, Gradle, Maven, Cargo, dotnet, Rakefile, composer.json, or Package.swift.',
         };
-      },
+      }),
     },
     {
       id: "coverage-config",

@@ -229,10 +229,28 @@ export async function detectProject(repoPath: string): Promise<ProjectInfo> {
   const absolutePath = path.resolve(repoPath);
 
   const [detectedTypes, monorepo] = await Promise.all([detectTypes(absolutePath), detectMonorepo(absolutePath)]);
+  if (detectedTypes.length > 0 || monorepo.isMonorepo) {
+    return { detectedTypes, isMonorepo: monorepo.isMonorepo, packages: monorepo.packages };
+  }
 
-  return {
-    detectedTypes,
-    isMonorepo: monorepo.isMonorepo,
-    packages: monorepo.packages,
-  };
+  // No manifest in the root: an infra or docs repository can still hold a service one
+  // directory down (infra/ next to relay/go.mod). Each such directory is a package.
+  const nested = await detectNestedProjects(absolutePath);
+  return { detectedTypes: nested.types, isMonorepo: nested.packages.length > 0, packages: nested.packages };
+}
+
+const NESTED_IGNORE = ["node_modules", "vendor", "dist", "build", "target"];
+
+async function detectNestedProjects(repoPath: string): Promise<{ types: string[]; packages: string[] }> {
+  const entries = await fs.readdir(repoPath, { withFileTypes: true }).catch(() => []);
+  const types = new Set<string>();
+  const packages: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".") || NESTED_IGNORE.includes(entry.name)) continue;
+    const found = await detectTypes(path.join(repoPath, entry.name));
+    if (found.length === 0) continue;
+    for (const t of found) types.add(t);
+    packages.push(entry.name);
+  }
+  return { types: [...types].sort(), packages: packages.sort() };
 }

@@ -99,3 +99,19 @@ describe("calculateLevel properties", () => {
     expect(score(checks)).toMatchObject({ level: 1, nextLevelProgress: { nextLevel: 2, remaining: 1 } });
   });
 });
+
+describe("calculateLevel next level", () => {
+  test("no next level when every check above the current level is N/A", () => {
+    const checks: Check[] = [1, 2, 3, 4].map((level) => ({ level: level as MaturityLevel, pass: true, skipped: false }));
+    checks.push({ level: 5, pass: false, skipped: true });
+    const result = score(checks);
+    expect(result.level).toBe(4);
+    expect(result.nextLevelProgress.nextLevel).toBeNull();
+  });
+
+  test("a next level with checks left is still offered", () => {
+    const checks: Check[] = [1, 2, 3, 4].map((level) => ({ level: level as MaturityLevel, pass: true, skipped: false }));
+    checks.push({ level: 5, pass: false, skipped: false });
+    expect(score(checks).nextLevelProgress.nextLevel).toBe(5);
+  });
+});

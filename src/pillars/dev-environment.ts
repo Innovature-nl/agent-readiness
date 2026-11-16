@@ -1,6 +1,6 @@
 import fg from "fast-glob";
 import type { Pillar } from "../types/index.js";
-import { fileExists, packageJsonHas, readFileContent } from "./utils.js";
+import { fileExists, packageJsonHas, readFileContent, rootOrEveryPackage } from "./utils.js";
 
 const devEnvironment: Pillar = {
   id: "dev-environment",
@@ -15,7 +15,7 @@ const devEnvironment: Pillar = {
       pillarId: "dev-environment",
       level: 1,
       requiresLLM: false,
-      check: async (repoPath, _projectInfo) => {
+      check: rootOrEveryPackage(async (repoPath, _projectInfo) => {
         const found = await fileExists(
           repoPath,
           "package-lock.json",
@@ -48,7 +48,7 @@ const devEnvironment: Pillar = {
           message: "No dependency lock file found.",
           details: "Commit a lock file to ensure reproducible dependency resolution.",
         };
-      },
+      }),
     },
     {
       id: "containerization",
@@ -240,7 +240,7 @@ const devEnvironment: Pillar = {
       pillarId: "dev-environment",
       level: 2,
       requiresLLM: false,
-      check: async (repoPath, _projectInfo) => {
+      check: rootOrEveryPackage(async (repoPath, _projectInfo) => {
         const found = await fileExists(
           repoPath,
           ".nvmrc",
@@ -296,7 +296,7 @@ const devEnvironment: Pillar = {
           message: "No runtime version pinning found.",
           details: "Add .nvmrc, .python-version, .tool-versions, or .mise.toml to pin runtime versions.",
         };
-      },
+      }),
     },
   ],
 };
