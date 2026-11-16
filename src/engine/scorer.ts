@@ -90,11 +90,15 @@ export function calculateLevel(pillars: Pillar[], results: Map<string, Criterion
   let remaining = 0;
 
   if (nextLevel !== null) {
-    const nextLevelCriteria = byLevel.get(nextLevel)!;
-    const totalAtNext = nextLevelCriteria.length;
-    current = nextLevelCriteria.filter((c) => c.pass).length;
-    needed = Math.ceil(totalAtNext * LEVEL_THRESHOLD);
-    remaining = Math.max(0, needed - current);
+    // Count every level up to the next one: the start level 1 is shown even when its own
+    // criteria fail, and those failures block the next level as much as its own do.
+    for (const lvl of levels.filter((l) => l <= nextLevel)) {
+      const criteriaAtLevel = byLevel.get(lvl)!;
+      const neededAtLevel = Math.ceil(criteriaAtLevel.length * LEVEL_THRESHOLD);
+      needed += neededAtLevel;
+      current += Math.min(neededAtLevel, criteriaAtLevel.filter((c) => c.pass).length);
+    }
+    remaining = needed - current;
   }
 
   return {
