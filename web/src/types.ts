@@ -46,6 +46,14 @@ export interface PillarScore {
   percentage: number;
 }
 
+export interface PackageScore {
+  path: string;
+  passed: number;
+  total: number;
+  percentage: number;
+  results: CriterionResult[];
+}
+
 export interface LevelResult {
   level: MaturityLevel;
   nextLevelProgress: {
@@ -75,6 +83,8 @@ export interface ReportData {
   levelResult: LevelResult;
   pillarScores: PillarScore[];
   recommendations: Recommendation[];
+  /** Absent in reports from versions before per-package scoring. */
+  packageScores?: PackageScore[];
 }
 
 export interface OrgRepoSummary {
