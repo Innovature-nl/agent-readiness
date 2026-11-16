@@ -59,3 +59,24 @@ describe("architecture-docs in an agent-docs folder", () => {
     expect((await getCheck(documentation, "architecture-docs")(dir, mockProjectInfo())).pass).toBe(true);
   });
 });
+
+describe("ai-context", () => {
+  const aiContext = getCheck(documentation, "ai-context");
+
+  test("accepts AGENTS.md", async () => {
+    const dir = await make("ai-agents-md", { "AGENTS.md": "# AGENTS.md" });
+    const result = await aiContext(dir, mockProjectInfo());
+    expect(result.pass).toBe(true);
+    expect(result.message).toContain("AGENTS.md");
+  });
+
+  test("accepts CLAUDE.md", async () => {
+    const dir = await make("ai-claude-md", { "CLAUDE.md": "# CLAUDE.md" });
+    expect((await aiContext(dir, mockProjectInfo())).pass).toBe(true);
+  });
+
+  test("fails without any", async () => {
+    const dir = await make("ai-none", { "README.md": "# Readme" });
+    expect((await aiContext(dir, mockProjectInfo())).pass).toBe(false);
+  });
+});

@@ -140,13 +140,14 @@ const documentation: Pillar = {
       id: "ai-context",
       name: "AI context files",
       description:
-        "AI-specific context files exist (CLAUDE.md, .cursor/rules, copilot-instructions.md).",
+        "AI-specific context files exist (AGENTS.md, CLAUDE.md, .cursor/rules, copilot-instructions.md).",
       pillarId: "documentation",
       level: 3,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
         const found = await fileExists(
           repoPath,
+          "AGENTS.md",
           "CLAUDE.md",
           ".cursor/rules",
           ".cursorrules",
@@ -164,7 +165,7 @@ const documentation: Pillar = {
           pass: false,
           message: "No AI context files found.",
           details:
-            "Add CLAUDE.md, .cursorrules, or .github/copilot-instructions.md to provide context for AI agents.",
+            "Add AGENTS.md (read by most coding agents), CLAUDE.md, .cursorrules, or .github/copilot-instructions.md to provide context for AI agents.",
         };
       },
     },
