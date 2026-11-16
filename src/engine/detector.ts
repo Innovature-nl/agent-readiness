@@ -225,14 +225,54 @@ async function detectMonorepo(repoPath: string): Promise<MonorepoResult> {
 // Public API
 // ---------------------------------------------------------------------------
 
+/**
+ * Packages of workspaces nested one or two directories deep, such as a frontend/ folder with
+ * its own pnpm-workspace.yaml that the root workspace excludes. Paths are relative to the root.
+ */
+async function detectNestedWorkspaces(repoPath: string): Promise<string[]> {
+  const manifests = await fg(["*/pnpm-workspace.yaml", "*/*/pnpm-workspace.yaml", "*/package.json", "*/*/package.json"], {
+    cwd: repoPath,
+    ignore: ["**/node_modules/**"],
+  });
+  const roots = [...new Set(manifests.map((m) => path.dirname(m)))];
+  const nested = await Promise.all(
+    roots.map(async (dir) => {
+      const result = await detectMonorepo(path.join(repoPath, dir));
+      return result.packages.map((p) => path.join(dir, p));
+    }),
+  );
+  return nested.flat();
+}
+
+/**
+ * Go services that share one module: every directory one or two levels deep with its own
+ * cmd/ folder, such as services/payments/cmd. Without a go.mod in the root this finds nothing.
+ * shortcut: only the cmd/ convention; services with a main.go in their root are not found.
+ */
+async function detectGoServices(repoPath: string): Promise<string[]> {
+  if (!(await fileExists(path.join(repoPath, "go.mod")))) return [];
+  const cmdDirs = await fg(["*/cmd", "*/*/cmd"], {
+    cwd: repoPath,
+    onlyDirectories: true,
+    ignore: ["**/node_modules/**", "**/vendor/**"],
+  });
+  return cmdDirs.map((d) => path.dirname(d));
+}
+
 export async function detectProject(repoPath: string): Promise<ProjectInfo> {
   const absolutePath = path.resolve(repoPath);
 
-  const [detectedTypes, monorepo] = await Promise.all([detectTypes(absolutePath), detectMonorepo(absolutePath)]);
+  const [detectedTypes, monorepo, nested, goServices] = await Promise.all([
+    detectTypes(absolutePath),
+    detectMonorepo(absolutePath),
+    detectNestedWorkspaces(absolutePath),
+    detectGoServices(absolutePath),
+  ]);
 
+  const packages = [...new Set([...monorepo.packages, ...nested, ...goServices])].sort();
   return {
     detectedTypes,
-    isMonorepo: monorepo.isMonorepo,
-    packages: monorepo.packages,
+    isMonorepo: monorepo.isMonorepo || packages.length >= 2,
+    packages,
   };
 }
