@@ -56,7 +56,6 @@ export function calculateLevel(pillars: Pillar[], results: Map<string, Criterion
   // A level passes if >= 80% of its criteria pass
   // Levels are sequential: can't pass level N without passing N-1
   let highestPassed: MaturityLevel = 1;
-  let lastPassedLevel: MaturityLevel = 1;
 
   for (const lvl of levels) {
     const criteriaAtLevel = byLevel.get(lvl)!;
@@ -65,7 +64,6 @@ export function calculateLevel(pillars: Pillar[], results: Map<string, Criterion
       // An empty level counts as passed only on the way to a higher level that has criteria;
       // otherwise a repo where every top-level check is N/A would reach level 5 for free.
       if (!levels.some((l) => l > lvl && byLevel.get(l)!.length > 0)) break;
-      lastPassedLevel = lvl;
       highestPassed = lvl;
       continue;
     }
@@ -74,7 +72,6 @@ export function calculateLevel(pillars: Pillar[], results: Map<string, Criterion
     const passRate = passedCount / criteriaAtLevel.length;
 
     if (passRate >= LEVEL_THRESHOLD) {
-      lastPassedLevel = lvl;
       highestPassed = lvl;
     } else {
       // Sequential requirement: can't pass level N without N-1

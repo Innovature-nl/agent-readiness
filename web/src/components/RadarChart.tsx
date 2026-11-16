@@ -49,7 +49,7 @@ export default function RadarChart({ data }: Props) {
               color: "#e5e7eb",
               fontSize: "12px",
             }}
-            formatter={(value: number) => [`${value}%`, "Score"]}
+            formatter={(value) => [`${value}%`, "Score"]}
           />
           <Radar
             name="Score"

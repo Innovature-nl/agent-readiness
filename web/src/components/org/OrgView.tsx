@@ -209,7 +209,7 @@ function OrgOverview({ data, picker }: Props & { picker: ReactNode }) {
               <PolarGrid stroke="#2a2a3a" />
               <PolarAngleAxis dataKey="pillar" tick={{ fill: "#9ca3af", fontSize: 11 }} />
               <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#6b7280", fontSize: 10 }} tickCount={5} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`${v}%`, "Pass rate"]} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => [`${v}%`, "Pass rate"]} />
               <Radar dataKey="score" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} />
             </RadarChart>
           </ResponsiveContainer>
