@@ -3,8 +3,8 @@ import type { SerializedReportData } from "../../src/engine/serializer.js";
 import { renderMarkdown } from "../../src/renderer/markdown.js";
 
 const report: SerializedReportData = {
-  repoName: "btcdirect",
-  repoPath: "/repos/btcdirect",
+  repoName: "acme-shop",
+  repoPath: "/repos/acme-shop",
   projectInfo: { detectedTypes: ["go", "node"], isMonorepo: true, packages: [] },
   pillars: [
     {
@@ -86,7 +86,7 @@ describe("renderMarkdown", () => {
   const md = renderMarkdown(report);
 
   test("opens with the repository, level and score", () => {
-    expect(md).toStartWith("# Agent readiness: btcdirect");
+    expect(md).toStartWith("# Agent readiness: acme-shop");
     expect(md).toContain("**Level 3: Structured**");
     expect(md).toContain("1 more criteria to reach Level 4");
     expect(md).toContain("Overall score: 50%");
