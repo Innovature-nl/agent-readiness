@@ -29,6 +29,17 @@ const testing: Pillar = {
           };
         }
 
+        // Bun's built-in runner needs no config file: bunfig.toml or a `bun test` script
+        const bunfig = await fileExists(repoPath, "bunfig.toml");
+        const testScript = (await readFileContent(repoPath, "package.json"))?.match(/"test"\s*:\s*"[^"]*\bbun test\b/);
+        if (bunfig || testScript) {
+          return {
+            criterionId: "test-framework",
+            pass: true,
+            message: `Bun test runner found: ${bunfig ?? "bun test script in package.json"}`,
+          };
+        }
+
         // Check for Go test files
         const goTests = await fg("**/*_test.go", {
           cwd: repoPath,
