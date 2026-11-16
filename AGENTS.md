@@ -13,7 +13,7 @@ bun run lint                   # Biome; bun run format applies the safe fixes
 bun run build:all              # CLI to dist/, dashboard to dist/web
 ```
 
-Run `typecheck`, `lint` and `test` before you push; CI runs the same plus the build.
+Run `typecheck`, `lint`, `knip` and `test` before you push; CI runs the same plus the build and `bun run size`. After a change you can see from the outside, run the matching feature of `.agents/skills/verify-agent-readiness/`.
 
 ## Adding or changing a check
 

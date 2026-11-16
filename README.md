@@ -476,16 +476,7 @@ Agent Readiness started as a fork of [kodustech/agent-readiness](https://github.
 
 ## Contributing
 
-```bash
-bun install
-bun run dev -- /path/to/repo     # run the CLI from source
-bun run dev:web                  # dashboard in dev mode
-bun test                         # tests
-bun run typecheck
-bun run build:all
-```
-
-A new check is a function in the right pillar under `src/pillars/`, registered in that pillar's criteria list, with a test under `tests/pillars/`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, the checks to run before a pull request, and how to add a check.
 
 ## License
 
