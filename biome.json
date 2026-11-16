@@ -1,6 +1,37 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
-  "files": { "includes": ["src/**", "tests/**"] },
-  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 140 },
-  "javascript": { "formatter": { "quoteStyle": "double" } }
+  "files": {
+    "includes": ["src/**", "tests/**"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 140
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/pillars/**", "src/renderer/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "node:child_process": "Checks read files only: they never run the scanned repository's code or tools (AGENTS.md).",
+                  "child_process": "Checks read files only: they never run the scanned repository's code or tools (AGENTS.md).",
+                  "bun": "Checks read files only: they never run the scanned repository's code or tools (AGENTS.md)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

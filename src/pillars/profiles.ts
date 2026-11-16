@@ -1,7 +1,7 @@
 import type { Criterion, Pillar } from "../types/index.js";
 
 export const PROFILES = ["default", "internal"] as const;
-export type Profile = (typeof PROFILES)[number];
+type Profile = (typeof PROFILES)[number];
 
 /** Checks that only matter for code shared outside the company. */
 const INTERNAL_DROPPED = new Set(["license", "security-policy"]);

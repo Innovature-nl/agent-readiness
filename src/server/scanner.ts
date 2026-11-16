@@ -5,13 +5,13 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-export interface OrgRepo {
+interface OrgRepo {
   name: string;
   description: string;
   pushedAt: string;
 }
 
-export interface ScanStatus {
+interface ScanStatus {
   running: boolean;
   current: string | null;
   queue: string[];
@@ -19,7 +19,7 @@ export interface ScanStatus {
   failed: Array<{ name: string; error: string }>;
 }
 
-export interface ScanServiceOptions {
+interface ScanServiceOptions {
   org: string;
   historyDir: string;
   cacheDir: string;

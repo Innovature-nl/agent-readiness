@@ -1,10 +1,10 @@
 import { notApplicableReason } from "../pillars/applicability.js";
 import type { CriterionResult, LLMClient, Pillar, ProjectInfo } from "../types/index.js";
 
-export type OnPillarStart = (pillar: Pillar) => void;
-export type OnPillarComplete = (pillar: Pillar, results: CriterionResult[]) => void;
+type OnPillarStart = (pillar: Pillar) => void;
+type OnPillarComplete = (pillar: Pillar, results: CriterionResult[]) => void;
 
-export interface AnalysisEngineOptions {
+interface AnalysisEngineOptions {
   aiEnabled?: boolean;
   llmClient?: LLMClient;
   onPillarStart?: OnPillarStart;

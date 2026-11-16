@@ -27,7 +27,7 @@ const SUPPRESSION =
   /eslint-disable|biome-ignore|oxlint-disable|@ts-ignore|@ts-nocheck|\/\/\s*nolint|#\s*noqa|#\s*type:\s*ignore|pylint:\s*disable|@phpstan-ignore|@psalm-suppress|phpcs:ignore|@Suppress\(|@SuppressWarnings|#\[allow\(|rubocop:disable|swiftlint:disable|#pragma warning disable/;
 
 /** Inline lint suppressions without a reason per 1,000 lines above this fail the check. */
-export const SUPPRESSION_LIMIT = 1;
+const SUPPRESSION_LIMIT = 1;
 
 const RULE_IDS = /^[\w:/,.@()-]*/;
 
@@ -35,7 +35,7 @@ const RULE_IDS = /^[\w:/,.@()-]*/;
  * A suppression has a reason when the marker and its rule ids are followed by at least two
  * words, after a separator such as `--`, `//`, `#` or `:` (Biome requires one after the colon).
  */
-export function hasReason(line: string): boolean {
+function hasReason(line: string): boolean {
   const m = line.match(SUPPRESSION);
   if (!m || m.index === undefined) return false;
   let rest = line.slice(m.index + m[0].length).trimStart();
@@ -229,9 +229,9 @@ const AGENT_FILES = [
 ];
 
 /** Characters of rule sentences per model call; large repositories take several calls. */
-export const RULES_BATCH = 80_000;
+const RULES_BATCH = 80_000;
 /** At most this many calls; rule sentences beyond them are left out by file. */
-export const MAX_RULE_BATCHES = 6;
+const MAX_RULE_BATCHES = 6;
 const ENFORCERS_BUDGET = 15_000;
 
 const HARD_RULE = /\b(never|must|always|do not|don't|forbidden|required|refuses?|only (?:via|through|use))\b/i;
@@ -258,7 +258,7 @@ const CI_FILES = [".github/workflows/*.{yml,yaml}", ".gitlab-ci.yml", ".circleci
 const CHECK_SCRIPTS = ["**/{check,verify,lint,guard,assert}-*.{sh,py,pl,ts,js,go}", "**/*-guard.{sh,py,pl,ts,js}"];
 
 /** The sentences of an instruction file that state a hard rule, each cut to 300 characters. */
-export function ruleSentences(text: string): string[] {
+function ruleSentences(text: string): string[] {
   return text
     .split(/\n+|(?<=[.!?])\s+(?=[A-Z*`])/)
     .map((s) => s.replace(/^[\s>*#|-]+/, "").trim())
@@ -383,9 +383,9 @@ const enforcedAgentRules: Criterion = {
 const HASH_COMMENTS = new Set(["py", "rb"]);
 
 /** Comment lines above this share of code lines fail comment-density. */
-export const COMMENT_LIMIT = 0.1;
+const COMMENT_LIMIT = 0.1;
 /** Workaround comments per 1,000 lines above this fail workaround-comments. */
-export const WORKAROUND_LIMIT = 1;
+const WORKAROUND_LIMIT = 1;
 
 const WORKAROUND = /\b(workaround|for now|temporar(y|ily)|hack(y|ish)?|quick fix|in case it|larger change|do not remove|don't remove)\b/i;
 

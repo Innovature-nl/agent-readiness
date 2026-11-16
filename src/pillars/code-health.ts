@@ -10,7 +10,7 @@ const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
 const GOLANGCI_CONFIGS = [".golangci.yml", ".golangci.yaml", ".golangci.json"];
 
 /** Whether a parsed golangci-lint config (v1 or v2) runs the `unused` linter. */
-export function golangciRunsUnused(config: unknown): boolean {
+function golangciRunsUnused(config: unknown): boolean {
   const linters = (config as { linters?: Record<string, unknown> } | null)?.linters ?? {};
   const list = (key: string) => (Array.isArray(linters[key]) ? (linters[key] as unknown[]) : []);
   if (list("disable").includes("unused")) return false;

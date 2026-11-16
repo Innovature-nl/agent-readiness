@@ -19,7 +19,8 @@
     "build:all": "bun run build && bun run build:web",
     "prepublishOnly": "bun run build:all",
     "dev:web": "cd web && bun install && bun run dev",
-    "format": "biome check --write"
+    "format": "biome check --write",
+    "knip": "knip"
   },
   "publishConfig": {
     "access": "public"
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
     "@types/bun": "latest",
+    "knip": "5.88.1",
     "typescript": "^5.7.0"
   }
 }

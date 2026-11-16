@@ -3,7 +3,7 @@ import type { CriterionInfo, MaturityLevel, OrgRepoSummary, OrgSummary } from ".
 import { LEVEL_LABELS } from "../../types";
 
 export const LEVELS: MaturityLevel[] = [1, 2, 3, 4, 5];
-export const THRESHOLD = 0.8;
+const THRESHOLD = 0.8;
 
 /** Plain-language meaning of each level, derived from the criteria assigned to it. */
 export const LEVEL_INFO: Record<MaturityLevel, string> = {
@@ -61,7 +61,7 @@ export function Delta({ value, suffix = "" }: { value: number | null; suffix?: s
   return <span className="text-gray-500">0{suffix}</span>;
 }
 
-export function sortByLevel(criteria: CriterionInfo[]): CriterionInfo[] {
+function sortByLevel(criteria: CriterionInfo[]): CriterionInfo[] {
   return [...criteria].sort((a, b) => a.level - b.level);
 }
 
