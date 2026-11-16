@@ -7,7 +7,7 @@ import { detectProject } from "./detector.js";
  * Criteria that say something about a single app or package in a monorepo. Everything else
  * (CI, CODEOWNERS, security policy, ...) is about the repository and is scored once.
  */
-export const PACKAGE_CRITERIA = new Set(["linter", "formatter", "type-checker", "test-framework", "test-script", "test-files-exist"]);
+const PACKAGE_CRITERIA = new Set(["linter", "formatter", "type-checker", "test-framework", "test-script", "test-files-exist"]);
 
 /** A root config for these usually covers every workspace, so a package without its own still passes. */
 const INHERITED_FROM_ROOT = new Set(["linter", "formatter", "type-checker", "test-framework", "test-script"]);
