@@ -10,6 +10,10 @@ updates:
       default-days: 5
     groups:
       bun: { patterns: ["*"] }
+    # Tailwind 4 needs a migration of the dashboard's config and CSS, not a version bump.
+    ignore:
+      - dependency-name: tailwindcss
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

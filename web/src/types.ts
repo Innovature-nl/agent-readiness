@@ -8,7 +8,7 @@ export const LEVEL_LABELS: Record<MaturityLevel, string> = {
   5: "Autonomous",
 };
 
-export interface ProjectInfo {
+interface ProjectInfo {
   detectedTypes: string[];
   isMonorepo: boolean;
   packages: string[];
@@ -22,7 +22,7 @@ export interface CriterionResult {
   skipped?: boolean;
 }
 
-export interface SerializedCriterion {
+interface SerializedCriterion {
   id: string;
   name: string;
   description: string;
@@ -46,7 +46,7 @@ export interface PillarScore {
   percentage: number;
 }
 
-export interface LevelResult {
+interface LevelResult {
   level: MaturityLevel;
   nextLevelProgress: {
     current: number;

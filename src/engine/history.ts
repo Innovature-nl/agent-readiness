@@ -23,7 +23,7 @@ export interface SnapshotDiff {
   newlyFailing: string[];
 }
 
-export interface OrgRepoSummary {
+interface OrgRepoSummary {
   repoName: string;
   level: MaturityLevel;
   percentage: number;
@@ -38,7 +38,7 @@ export interface OrgRepoSummary {
 }
 
 /** Static description of a criterion, so the dashboard can explain it and say how to fix it. */
-export interface CriterionInfo {
+interface CriterionInfo {
   id: string;
   name: string;
   pillarId: string;
