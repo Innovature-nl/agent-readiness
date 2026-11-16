@@ -1,3 +1,4 @@
+import { summarizePackages } from "../engine/packages.js";
 import type { SerializedReportData } from "../engine/serializer.js";
 import { LEVEL_LABELS, type MaturityLevel } from "../types/index.js";
 
@@ -33,6 +34,18 @@ export function renderMarkdown(r: SerializedReportData): string {
     if (s) out.push(`| ${p.icon} ${p.name} | ${s.percentage}% | ${s.passed}/${s.total} |`);
   }
   out.push("");
+
+  if (r.packageScores.length > 0) {
+    const name = (id: string) => r.pillars.flatMap((p) => p.criteria).find((c) => c.id === id)?.name ?? id;
+    out.push("## Packages", "", "| Package | Score | Pass/Total | Missing |", "|---|---|---|---|");
+    for (const s of r.packageScores) {
+      const missing = s.results.filter((x) => !x.pass && !x.skipped).map((x) => name(x.criterionId));
+      out.push(`| \`${s.path}\` | ${s.percentage}% | ${s.passed}/${s.total} | ${missing.join(", ") || "-"} |`);
+    }
+    out.push("");
+    for (const c of summarizePackages(r.packageScores)) out.push(`- ${c.passed}/${c.total} packages pass ${name(c.criterionId)}`);
+    out.push("");
+  }
 
   out.push("## Checks", "");
   for (const p of r.pillars) {

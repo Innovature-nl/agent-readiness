@@ -55,6 +55,15 @@ export interface PillarScore {
   percentage: number;
 }
 
+/** Score of one monorepo package on the package-scoped criteria. */
+export interface PackageScore {
+  path: string;
+  passed: number;
+  total: number;
+  percentage: number;
+  results: CriterionResult[];
+}
+
 export interface LevelResult {
   level: MaturityLevel;
   nextLevelProgress: {
@@ -84,6 +93,8 @@ export interface ReportData {
   levelResult: LevelResult;
   pillarScores: PillarScore[];
   recommendations: Recommendation[];
+  /** Per-package scores; empty unless the repository is a monorepo with detected packages. */
+  packageScores: PackageScore[];
 }
 
 export interface Config {
