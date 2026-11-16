@@ -262,17 +262,36 @@ async function detectGoServices(repoPath: string): Promise<string[]> {
 export async function detectProject(repoPath: string): Promise<ProjectInfo> {
   const absolutePath = path.resolve(repoPath);
 
-  const [detectedTypes, monorepo, nested, goServices] = await Promise.all([
+  const [detectedTypes, monorepo, nestedWorkspaces, goServices] = await Promise.all([
     detectTypes(absolutePath),
     detectMonorepo(absolutePath),
     detectNestedWorkspaces(absolutePath),
     detectGoServices(absolutePath),
   ]);
 
-  const packages = [...new Set([...monorepo.packages, ...nested, ...goServices])].sort();
-  return {
-    detectedTypes,
-    isMonorepo: monorepo.isMonorepo || packages.length >= 2,
-    packages,
-  };
+  const packages = [...new Set([...monorepo.packages, ...nestedWorkspaces, ...goServices])].sort();
+  if (detectedTypes.length > 0 || monorepo.isMonorepo || packages.length > 0) {
+    return { detectedTypes, isMonorepo: monorepo.isMonorepo || packages.length >= 2, packages };
+  }
+
+  // No manifest in the root: an infra or docs repository can still hold a service one
+  // directory down (infra/ next to relay/go.mod). Each such directory is a package.
+  const nested = await detectNestedProjects(absolutePath);
+  return { detectedTypes: nested.types, isMonorepo: nested.packages.length > 0, packages: nested.packages };
+}
+
+const NESTED_IGNORE = ["node_modules", "vendor", "dist", "build", "target"];
+
+async function detectNestedProjects(repoPath: string): Promise<{ types: string[]; packages: string[] }> {
+  const entries = await fs.readdir(repoPath, { withFileTypes: true }).catch(() => []);
+  const types = new Set<string>();
+  const packages: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".") || NESTED_IGNORE.includes(entry.name)) continue;
+    const found = await detectTypes(path.join(repoPath, entry.name));
+    if (found.length === 0) continue;
+    for (const t of found) types.add(t);
+    packages.push(entry.name);
+  }
+  return { types: [...types].sort(), packages: packages.sort() };
 }

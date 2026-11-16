@@ -124,6 +124,8 @@ function renderLevelBadge(data: ReportData, ci: boolean): void {
     console.log(`Level: ${level} - ${label}`);
     if (nextLevelProgress.nextLevel !== null) {
       console.log(`Progress: ${nextLevelProgress.remaining} more criteria to reach Level ${nextLevelProgress.nextLevel}`);
+    } else if (level < 5) {
+      console.log("Progress: Highest level for this repository: the checks above it do not apply.");
     }
     console.log(`Overall: ${plainProgressBar(overall)} ${overall}%`);
     console.log("");
@@ -138,8 +140,10 @@ function renderLevelBadge(data: ReportData, ci: boolean): void {
   let progressLine = "";
   if (nextLevelProgress.nextLevel !== null) {
     progressLine = "\n" + chalk.dim(`${nextLevelProgress.remaining} more criteria to reach Level ${nextLevelProgress.nextLevel}`);
+  } else if (level < 5) {
+    progressLine = `\n${chalk.dim("Highest level for this repository: the checks above it do not apply.")}`;
   } else {
-    progressLine = "\n" + chalk.green.bold("Maximum level achieved!");
+    progressLine = `\n${chalk.green.bold("Maximum level achieved!")}`;
   }
 
   const overallLine = `\n\n${chalk.white("Overall Score  ")}${progressBar(overall)}  ${chalk.bold.white(`${overall}%`)}`;
