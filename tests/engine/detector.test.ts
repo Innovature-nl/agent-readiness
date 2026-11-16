@@ -118,3 +118,38 @@ describe("detectProject", () => {
     expect(info.detectedTypes).toContain("ruby");
   });
 });
+
+describe("projects one directory down", () => {
+  test("a service under an infra repository counts as a package", async () => {
+    const dir = await make("nested-go", {
+      "infra/main.tf": "terraform {}",
+      "relay/go.mod": "module example.com/relay",
+      "README.md": "# Infra",
+    });
+    const info = await detectProject(dir);
+    expect(info.detectedTypes).toEqual(["go"]);
+    expect(info.isMonorepo).toBe(true);
+    expect(info.packages).toEqual(["relay"]);
+  });
+
+  test("ignores dependency and hidden directories", async () => {
+    const dir = await make("nested-ignored", {
+      "node_modules/x/package.json": "{}",
+      ".github/package.json": "{}",
+      "docs/index.md": "# Docs",
+    });
+    const info = await detectProject(dir);
+    expect(info.detectedTypes).toEqual([]);
+    expect(info.isMonorepo).toBe(false);
+  });
+
+  test("a root manifest wins, so nested directories are left to the monorepo rules", async () => {
+    const dir = await make("nested-root", {
+      "package.json": "{}",
+      "tools/go.mod": "module example.com/tools",
+    });
+    const info = await detectProject(dir);
+    expect(info.detectedTypes).toEqual(["node"]);
+    expect(info.isMonorepo).toBe(false);
+  });
+});

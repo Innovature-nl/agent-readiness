@@ -149,7 +149,12 @@ export default function OverallProgress({ data }: Props) {
           skipReason={(c) => byId.get(c.id)?.message || "Not evaluated"}
         />
       </div>
-      {nextLevelProgress.nextLevel === null && (
+      {nextLevelProgress.nextLevel === null && data.levelResult.level < 5 && (
+        <p className="text-xs text-gray-500 mt-3 text-center">
+          Highest level for this repository: the checks above it do not apply.
+        </p>
+      )}
+      {nextLevelProgress.nextLevel === null && data.levelResult.level === 5 && (
         <p className="text-xs text-pass mt-3 text-center font-medium">
           Maximum level achieved!
         </p>

@@ -24,6 +24,8 @@ export function renderMarkdown(r: SerializedReportData): string {
   out.push(`**Level ${level}: ${LEVEL_LABELS[level]}**. Overall score: ${overall}% (${passed}/${total} checks).`);
   if (next.nextLevel) {
     out.push(`${next.remaining} more criteria to reach Level ${next.nextLevel} (${LEVEL_LABELS[next.nextLevel as MaturityLevel]}).`);
+  } else if (level < 5) {
+    out.push("Highest level for this repository: the checks above it do not apply.");
   }
   const types = r.projectInfo.detectedTypes.join(", ") || "unknown";
   out.push("", `Project: ${types}${r.projectInfo.isMonorepo ? " (monorepo)" : ""}. Path: \`${r.repoPath}\`.`, "");
