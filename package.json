@@ -20,7 +20,8 @@
     "prepublishOnly": "bun run build:all",
     "dev:web": "cd web && bun install && bun run dev",
     "format": "biome check --write",
-    "knip": "knip"
+    "knip": "knip",
+    "size": "size-limit"
   },
   "publishConfig": {
     "access": "public"
@@ -49,8 +50,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
+    "@size-limit/file": "14.3.0",
     "@types/bun": "latest",
+    "fast-check": "4.10.2",
     "knip": "5.88.1",
+    "size-limit": "14.3.0",
     "typescript": "^5.7.0"
   }
 }
