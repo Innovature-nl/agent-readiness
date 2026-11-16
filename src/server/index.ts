@@ -1,11 +1,11 @@
-import { renderMarkdown } from "../renderer/markdown.js";
-import path from "node:path";
+import { exec } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { exec } from "node:child_process";
-import type { SerializedReportData } from "../engine/serializer.js";
 import type { OrgSummary } from "../engine/history.js";
+import type { SerializedReportData } from "../engine/serializer.js";
+import { renderMarkdown } from "../renderer/markdown.js";
 import type { ScanService } from "./scanner.js";
 
 function getCurrentDir(): string {
@@ -68,10 +68,7 @@ export async function startServer(
   const indexPath = path.join(DIST_WEB_DIR, "index.html");
 
   if (!fs.existsSync(indexPath)) {
-    throw new Error(
-      `Web dashboard not built. Run "bun run build:web" first.\n` +
-        `Expected files at: ${DIST_WEB_DIR}`,
-    );
+    throw new Error(`Web dashboard not built. Run "bun run build:web" first.\n` + `Expected files at: ${DIST_WEB_DIR}`);
   }
 
   const renderIndex = async () => {
@@ -126,7 +123,8 @@ export async function startServer(
         if (body.length > 100_000) return sendJson(res, 413, { error: "Too large" });
       }
       const repos = (JSON.parse(body || "{}") as { repos?: unknown }).repos;
-      if (!Array.isArray(repos) || !repos.every((r) => typeof r === "string")) return sendJson(res, 400, { error: "repos must be a list of names" });
+      if (!Array.isArray(repos) || !repos.every((r) => typeof r === "string"))
+        return sendJson(res, 400, { error: "repos must be a list of names" });
       return sendJson(res, 202, await scanner.start(repos));
     }
     return sendJson(res, 404, { error: "Not found" });
@@ -183,12 +181,7 @@ export async function startServer(
  * Opens the given URL in the default browser.
  */
 export async function openBrowser(url: string): Promise<void> {
-  const cmd =
-    process.platform === "darwin"
-      ? `open "${url}"`
-      : process.platform === "win32"
-        ? `start "" "${url}"`
-        : `xdg-open "${url}"`;
+  const cmd = process.platform === "darwin" ? `open "${url}"` : process.platform === "win32" ? `start "" "${url}"` : `xdg-open "${url}"`;
 
   return new Promise((resolve) => {
     exec(cmd, () => resolve());

@@ -1,20 +1,18 @@
+import fg from "fast-glob";
 import type { Pillar } from "../types/index.js";
 import { guardrailDocumentationCriteria } from "./guardrails.js";
 import { fileExists, readFileContent } from "./utils.js";
-import fg from "fast-glob";
 
 const documentation: Pillar = {
   id: "documentation",
   name: "Documentation",
-  description:
-    "Assesses the quality and breadth of project documentation for both humans and AI agents.",
+  description: "Assesses the quality and breadth of project documentation for both humans and AI agents.",
   icon: "\uD83D\uDCDA",
   criteria: [
     {
       id: "readme",
       name: "README with substance",
-      description:
-        "A README.md exists and has meaningful content (more than 500 characters).",
+      description: "A README.md exists and has meaningful content (more than 500 characters).",
       pillarId: "documentation",
       level: 1,
       requiresLLM: false,
@@ -47,17 +45,12 @@ const documentation: Pillar = {
     {
       id: "contributing",
       name: "Contributing guide",
-      description:
-        "A CONTRIBUTING.md or docs/contributing guide exists to help new contributors.",
+      description: "A CONTRIBUTING.md or docs/contributing guide exists to help new contributors.",
       pillarId: "documentation",
       level: 2,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "CONTRIBUTING.md",
-          "docs/contributing*",
-        );
+        const found = await fileExists(repoPath, "CONTRIBUTING.md", "docs/contributing*");
         if (found) {
           return {
             criterionId: "contributing",
@@ -76,8 +69,7 @@ const documentation: Pillar = {
     {
       id: "api-docs",
       name: "API documentation",
-      description:
-        "API documentation exists (OpenAPI/Swagger/AsyncAPI specs, .proto contracts, JSDoc/TypeDoc config, docs/api).",
+      description: "API documentation exists (OpenAPI/Swagger/AsyncAPI specs, .proto contracts, JSDoc/TypeDoc config, docs/api).",
       pillarId: "documentation",
       level: 3,
       requiresLLM: false,
@@ -85,11 +77,13 @@ const documentation: Pillar = {
         const found =
           (await fileExists(repoPath, "docs/api*", "jsdoc.json", "typedoc.json")) ??
           // API contracts can live per service in a monorepo; .proto files describe gRPC APIs.
-          (await fg(["**/{openapi,swagger,asyncapi}.{json,yaml,yml}", "**/*.proto"], {
-            cwd: repoPath,
-            deep: 6,
-            ignore: ["**/node_modules/**", "**/vendor/**"],
-          }))[0];
+          (
+            await fg(["**/{openapi,swagger,asyncapi}.{json,yaml,yml}", "**/*.proto"], {
+              cwd: repoPath,
+              deep: 6,
+              ignore: ["**/node_modules/**", "**/vendor/**"],
+            })
+          )[0];
         if (found) {
           return {
             criterionId: "api-docs",
@@ -101,25 +95,19 @@ const documentation: Pillar = {
           criterionId: "api-docs",
           pass: false,
           message: "No API documentation found.",
-          details:
-            "Add OpenAPI/Swagger specs, JSDoc/TypeDoc config, or a docs/api directory.",
+          details: "Add OpenAPI/Swagger specs, JSDoc/TypeDoc config, or a docs/api directory.",
         };
       },
     },
     {
       id: "codeowners",
       name: "CODEOWNERS defined",
-      description:
-        "A CODEOWNERS file is present to define ownership of code areas.",
+      description: "A CODEOWNERS file is present to define ownership of code areas.",
       pillarId: "documentation",
       level: 3,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          "CODEOWNERS",
-          ".github/CODEOWNERS",
-        );
+        const found = await fileExists(repoPath, "CODEOWNERS", ".github/CODEOWNERS");
         if (found) {
           return {
             criterionId: "codeowners",
@@ -131,16 +119,14 @@ const documentation: Pillar = {
           criterionId: "codeowners",
           pass: false,
           message: "No CODEOWNERS file found.",
-          details:
-            "Add a CODEOWNERS file to assign ownership of different parts of the codebase.",
+          details: "Add a CODEOWNERS file to assign ownership of different parts of the codebase.",
         };
       },
     },
     {
       id: "ai-context",
       name: "AI context files",
-      description:
-        "AI-specific context files exist (AGENTS.md, CLAUDE.md, .cursor/rules, copilot-instructions.md).",
+      description: "AI-specific context files exist (AGENTS.md, CLAUDE.md, .cursor/rules, copilot-instructions.md).",
       pillarId: "documentation",
       level: 3,
       requiresLLM: false,
@@ -172,8 +158,7 @@ const documentation: Pillar = {
     {
       id: "architecture-docs",
       name: "Architecture documentation",
-      description:
-        "Architecture documentation or ADRs exist (docs/architecture, docs/adr, docs/decisions, ARCHITECTURE.md).",
+      description: "Architecture documentation or ADRs exist (docs/architecture, docs/adr, docs/decisions, ARCHITECTURE.md).",
       pillarId: "documentation",
       level: 4,
       requiresLLM: false,
@@ -196,16 +181,14 @@ const documentation: Pillar = {
           criterionId: "architecture-docs",
           pass: false,
           message: "No architecture documentation found.",
-          details:
-            "Add docs/architecture, docs/adr, or ARCHITECTURE.md to document high-level design decisions.",
+          details: "Add docs/architecture, docs/adr, or ARCHITECTURE.md to document high-level design decisions.",
         };
       },
     },
     {
       id: "readme-quality",
       name: "README quality (AI)",
-      description:
-        "The README effectively communicates project purpose, setup, usage, and contributing guidelines.",
+      description: "The README effectively communicates project purpose, setup, usage, and contributing guidelines.",
       pillarId: "documentation",
       level: 5,
       requiresLLM: true,
@@ -226,17 +209,18 @@ const documentation: Pillar = {
             message: "Unable to evaluate README quality.",
           };
         }
-        return llmClient.evaluate(
-          "Evaluate this README for quality. A good README should cover: project overview/purpose, installation/setup instructions, usage examples, and how to contribute. Does it have clear structure with headings? Is it helpful for someone new to the project? Is it useful for an AI coding agent trying to understand the project?",
-          content.slice(0, 8000),
-        ).then((r) => ({ ...r, criterionId: "readme-quality" }));
+        return llmClient
+          .evaluate(
+            "Evaluate this README for quality. A good README should cover: project overview/purpose, installation/setup instructions, usage examples, and how to contribute. Does it have clear structure with headings? Is it helpful for someone new to the project? Is it useful for an AI coding agent trying to understand the project?",
+            content.slice(0, 8000),
+          )
+          .then((r) => ({ ...r, criterionId: "readme-quality" }));
       },
     },
     {
       id: "docs-agent-friendliness",
       name: "Documentation agent-friendliness (AI)",
-      description:
-        "Documentation is structured and detailed enough for AI agents to understand the codebase.",
+      description: "Documentation is structured and detailed enough for AI agents to understand the codebase.",
       pillarId: "documentation",
       level: 5,
       requiresLLM: true,
@@ -250,10 +234,11 @@ const documentation: Pillar = {
         }
 
         // Gather available documentation
-        const docFiles = await fg(
-          ["README.md", "CONTRIBUTING.md", "CLAUDE.md", ".cursorrules", "docs/**/*.md", "ARCHITECTURE.md"],
-          { cwd: repoPath, absolute: false, dot: true },
-        );
+        const docFiles = await fg(["README.md", "CONTRIBUTING.md", "CLAUDE.md", ".cursorrules", "docs/**/*.md", "ARCHITECTURE.md"], {
+          cwd: repoPath,
+          absolute: false,
+          dot: true,
+        });
 
         if (docFiles.length === 0) {
           return {
@@ -271,10 +256,12 @@ const documentation: Pillar = {
           }
         }
 
-        return llmClient.evaluate(
-          "Evaluate these documentation files for AI-agent-friendliness. Good agent-friendly docs should: explain project structure, describe key abstractions, specify coding conventions, note testing patterns, and provide context that helps an AI agent make correct changes. Are these docs sufficient for an autonomous coding agent to work on this project effectively?",
-          snippets.join("\n\n"),
-        ).then((r) => ({ ...r, criterionId: "docs-agent-friendliness" }));
+        return llmClient
+          .evaluate(
+            "Evaluate these documentation files for AI-agent-friendliness. Good agent-friendly docs should: explain project structure, describe key abstractions, specify coding conventions, note testing patterns, and provide context that helps an AI agent make correct changes. Are these docs sufficient for an autonomous coding agent to work on this project effectively?",
+            snippets.join("\n\n"),
+          )
+          .then((r) => ({ ...r, criterionId: "docs-agent-friendliness" }));
       },
     },
     ...guardrailDocumentationCriteria,

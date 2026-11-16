@@ -1,17 +1,8 @@
-import type {
-  Pillar,
-  CriterionResult,
-  PillarScore,
-  LevelResult,
-  MaturityLevel,
-} from "../types/index.js";
+import type { CriterionResult, LevelResult, MaturityLevel, Pillar, PillarScore } from "../types/index.js";
 
 import { LEVEL_THRESHOLD } from "../types/index.js";
 
-export function calculatePillarScores(
-  pillars: Pillar[],
-  results: Map<string, CriterionResult[]>,
-): PillarScore[] {
+export function calculatePillarScores(pillars: Pillar[], results: Map<string, CriterionResult[]>): PillarScore[] {
   return pillars.map((pillar) => {
     const pillarResults = results.get(pillar.id) ?? [];
 
@@ -30,10 +21,7 @@ export function calculatePillarScores(
   });
 }
 
-export function calculateLevel(
-  pillars: Pillar[],
-  results: Map<string, CriterionResult[]>,
-): LevelResult {
+export function calculateLevel(pillars: Pillar[], results: Map<string, CriterionResult[]>): LevelResult {
   // Collect ALL criteria results across all pillars, excluding skipped
   const allCriteria: { level: MaturityLevel; pass: boolean }[] = [];
 
@@ -41,9 +29,7 @@ export function calculateLevel(
     const pillarResults = results.get(pillar.id) ?? [];
 
     for (const criterion of pillar.criteria) {
-      const result = pillarResults.find(
-        (r) => r.criterionId === criterion.id,
-      );
+      const result = pillarResults.find((r) => r.criterionId === criterion.id);
 
       // Skip criteria that were skipped (e.g. LLM-required without --ai)
       if (result?.skipped) continue;
@@ -97,8 +83,7 @@ export function calculateLevel(
   }
 
   // Calculate next level progress
-  const nextLevel: MaturityLevel | null =
-    highestPassed < 5 ? ((highestPassed + 1) as MaturityLevel) : null;
+  const nextLevel: MaturityLevel | null = highestPassed < 5 ? ((highestPassed + 1) as MaturityLevel) : null;
 
   let current = 0;
   let needed = 0;

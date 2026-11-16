@@ -1,0 +1,6 @@
+# Read by the gitleaks pre-commit hook. Default rules; test fixtures with fake
+# keys go in an allowlist with a description.
+title = "agent-readiness secret scan"
+
+[extend]
+useDefault = true

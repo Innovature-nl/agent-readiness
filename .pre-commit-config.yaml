@@ -1,0 +1,21 @@
+# Install once with `pre-commit install`. CI runs the same checks.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: biome
+        name: biome
+        entry: bun run lint
+        language: system
+        files: \.(ts|tsx|json)$
+        pass_filenames: false
+      - id: typecheck
+        name: typecheck
+        entry: bun run typecheck
+        language: system
+        files: \.tsx?$
+        pass_filenames: false

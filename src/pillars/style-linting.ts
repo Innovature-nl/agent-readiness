@@ -1,20 +1,18 @@
-import type { Pillar } from "../types/index.js";
-import { fileExists, readFileContent, packageJsonHas } from "./utils.js";
 import fg from "fast-glob";
+import type { Pillar } from "../types/index.js";
 import { guardrailStyleCriteria } from "./guardrails.js";
+import { fileExists, packageJsonHas, readFileContent } from "./utils.js";
 
 const styleLinting: Pillar = {
   id: "style-linting",
   name: "Style & Linting",
-  description:
-    "Ensures the project enforces consistent code style and catches errors through static analysis.",
+  description: "Ensures the project enforces consistent code style and catches errors through static analysis.",
   icon: "\uD83C\uDFA8",
   criteria: [
     {
       id: "linter",
       name: "Linter configured",
-      description:
-        "A static analysis linter is configured (ESLint, Biome, Ruff, golangci-lint, etc.).",
+      description: "A static analysis linter is configured (ESLint, Biome, Ruff, golangci-lint, etc.).",
       pillarId: "style-linting",
       level: 2,
       requiresLLM: false,
@@ -99,14 +97,7 @@ const styleLinting: Pillar = {
         }
 
         // Check Java Checkstyle/PMD config files
-        const javaLinterFound = await fileExists(
-          repoPath,
-          "checkstyle.xml",
-          ".checkstyle",
-          "pmd.xml",
-          ".pmd",
-          "spotbugs-exclude.xml",
-        );
+        const javaLinterFound = await fileExists(repoPath, "checkstyle.xml", ".checkstyle", "pmd.xml", ".pmd", "spotbugs-exclude.xml");
         if (javaLinterFound) {
           return { criterionId: "linter", pass: true, message: `Java linter configuration found: ${javaLinterFound}` };
         }
@@ -130,7 +121,10 @@ const styleLinting: Pillar = {
 
         // Check composer.json for PHP linters
         const composerJson = await readFileContent(repoPath, "composer.json");
-        if (composerJson && (composerJson.includes("phpstan") || composerJson.includes("psalm") || composerJson.includes("squizlabs/php_codesniffer"))) {
+        if (
+          composerJson &&
+          (composerJson.includes("phpstan") || composerJson.includes("psalm") || composerJson.includes("squizlabs/php_codesniffer"))
+        ) {
           return { criterionId: "linter", pass: true, message: "PHP linter found in composer.json" };
         }
 
@@ -169,19 +163,13 @@ const styleLinting: Pillar = {
     {
       id: "formatter",
       name: "Formatter configured",
-      description:
-        "A code formatter is configured (Prettier, Biome formatter, Black, Ruff format).",
+      description: "A code formatter is configured (Prettier, Biome formatter, Black, Ruff format).",
       pillarId: "style-linting",
       level: 2,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
         // Check Prettier
-        const prettierFound = await fileExists(
-          repoPath,
-          ".prettierrc",
-          ".prettierrc.*",
-          "prettier.config.*",
-        );
+        const prettierFound = await fileExists(repoPath, ".prettierrc", ".prettierrc.*", "prettier.config.*");
         if (prettierFound) {
           return {
             criterionId: "formatter",
@@ -226,10 +214,7 @@ const styleLinting: Pillar = {
         // Check Biome with formatter
         const biomeContent = await readFileContent(repoPath, "biome.json");
         if (!biomeContent) {
-          const biomeContentJsonc = await readFileContent(
-            repoPath,
-            "biome.jsonc",
-          );
+          const biomeContentJsonc = await readFileContent(repoPath, "biome.jsonc");
           if (biomeContentJsonc && biomeContentJsonc.includes("formatter")) {
             return {
               criterionId: "formatter",
@@ -248,15 +233,11 @@ const styleLinting: Pillar = {
         // Check pyproject.toml for black or ruff
         const pyproject = await readFileContent(repoPath, "pyproject.toml");
         if (pyproject) {
-          if (
-            pyproject.includes("[tool.black]") ||
-            pyproject.includes("[tool.ruff")
-          ) {
+          if (pyproject.includes("[tool.black]") || pyproject.includes("[tool.ruff")) {
             return {
               criterionId: "formatter",
               pass: true,
-              message:
-                "Python formatter configuration found in pyproject.toml",
+              message: "Python formatter configuration found in pyproject.toml",
             };
           }
         }
@@ -342,8 +323,7 @@ const styleLinting: Pillar = {
     {
       id: "type-checker",
       name: "Type checker configured",
-      description:
-        "A type-checking tool is configured in strict mode (TypeScript strict, mypy, pyright).",
+      description: "A type-checking tool is configured in strict mode (TypeScript strict, mypy, pyright).",
       pillarId: "style-linting",
       level: 3,
       requiresLLM: false,
@@ -377,17 +357,13 @@ const styleLinting: Pillar = {
         if (tsconfig) {
           try {
             // Strip comments (simple approach for JSON with comments)
-            const stripped = tsconfig.replace(
-              /\/\/.*$|\/\*[\s\S]*?\*\//gm,
-              "",
-            );
+            const stripped = tsconfig.replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, "");
             const parsed = JSON.parse(stripped);
             if (parsed?.compilerOptions?.strict === true) {
               return {
                 criterionId: "type-checker",
                 pass: true,
-                message:
-                  "TypeScript configured with strict mode in tsconfig.json",
+                message: "TypeScript configured with strict mode in tsconfig.json",
               };
             }
           } catch {
@@ -396,11 +372,7 @@ const styleLinting: Pillar = {
         }
 
         // Check mypy
-        const mypyFound = await fileExists(
-          repoPath,
-          "mypy.ini",
-          ".mypy.ini",
-        );
+        const mypyFound = await fileExists(repoPath, "mypy.ini", ".mypy.ini");
         if (mypyFound) {
           return {
             criterionId: "type-checker",
@@ -433,27 +405,19 @@ const styleLinting: Pillar = {
           criterionId: "type-checker",
           pass: false,
           message: "No type checker with strict mode found.",
-          details:
-            "Enable TypeScript strict mode, or add mypy/pyright for Python projects.",
+          details: "Enable TypeScript strict mode, or add mypy/pyright for Python projects.",
         };
       },
     },
     {
       id: "pre-commit-hooks",
       name: "Pre-commit hooks configured",
-      description:
-        "Git hooks are configured to run linting/formatting before commits (Husky, Lefthook, pre-commit).",
+      description: "Git hooks are configured to run linting/formatting before commits (Husky, Lefthook, pre-commit).",
       pillarId: "style-linting",
       level: 3,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const found = await fileExists(
-          repoPath,
-          ".husky",
-          ".lefthook.yml",
-          "lefthook.yml",
-          ".pre-commit-config.yaml",
-        );
+        const found = await fileExists(repoPath, ".husky", ".lefthook.yml", "lefthook.yml", ".pre-commit-config.yaml");
         if (found) {
           return {
             criterionId: "pre-commit-hooks",
@@ -495,16 +459,14 @@ const styleLinting: Pillar = {
           criterionId: "pre-commit-hooks",
           pass: false,
           message: "No pre-commit hooks found.",
-          details:
-            "Add Husky, Lefthook, or pre-commit to run checks before commits.",
+          details: "Add Husky, Lefthook, or pre-commit to run checks before commits.",
         };
       },
     },
     {
       id: "editorconfig",
       name: "EditorConfig present",
-      description:
-        "An .editorconfig file is present to enforce consistent editor settings.",
+      description: "An .editorconfig file is present to enforce consistent editor settings.",
       pillarId: "style-linting",
       level: 1,
       requiresLLM: false,
@@ -521,16 +483,14 @@ const styleLinting: Pillar = {
           criterionId: "editorconfig",
           pass: false,
           message: "No .editorconfig found.",
-          details:
-            "Add an .editorconfig to standardize indentation and file encoding across editors.",
+          details: "Add an .editorconfig to standardize indentation and file encoding across editors.",
         };
       },
     },
     {
       id: "naming-conventions",
       name: "Naming conventions (AI)",
-      description:
-        "The codebase follows consistent naming conventions for files, functions, and variables.",
+      description: "The codebase follows consistent naming conventions for files, functions, and variables.",
       pillarId: "style-linting",
       level: 5,
       requiresLLM: true,
@@ -544,7 +504,14 @@ const styleLinting: Pillar = {
         }
 
         const srcFiles = await fg(
-          ["**/*.{ts,tsx,js,jsx,py,go,rs,kt,kts,java,cs,rb,php,swift}", "!node_modules/**", "!vendor/**", "!dist/**", "!build/**", "!target/**"],
+          [
+            "**/*.{ts,tsx,js,jsx,py,go,rs,kt,kts,java,cs,rb,php,swift}",
+            "!node_modules/**",
+            "!vendor/**",
+            "!dist/**",
+            "!build/**",
+            "!target/**",
+          ],
           { cwd: repoPath, absolute: false },
         );
 
@@ -567,10 +534,12 @@ const styleLinting: Pillar = {
           }
         }
 
-        return llmClient.evaluate(
-          "Evaluate naming convention consistency in this codebase. Check: Are file names consistently cased (kebab-case, camelCase, PascalCase)? Are functions/methods consistently named? Are variables descriptively named? Is there a clear pattern that an AI agent could follow when writing new code?",
-          snippets.join("\n\n"),
-        ).then((r) => ({ ...r, criterionId: "naming-conventions" }));
+        return llmClient
+          .evaluate(
+            "Evaluate naming convention consistency in this codebase. Check: Are file names consistently cased (kebab-case, camelCase, PascalCase)? Are functions/methods consistently named? Are variables descriptively named? Is there a clear pattern that an AI agent could follow when writing new code?",
+            snippets.join("\n\n"),
+          )
+          .then((r) => ({ ...r, criterionId: "naming-conventions" }));
       },
     },
     ...guardrailStyleCriteria,

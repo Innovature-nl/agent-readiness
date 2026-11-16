@@ -1,0 +1,20 @@
+# Weekly, grouped per ecosystem. A release must be 5 days old before it gets a PR,
+# so a compromised publish is usually pulled first; security updates are immediate.
+version: 2
+
+updates:
+  - package-ecosystem: bun
+    directories: ["/", "/web"]
+    schedule: { interval: weekly, day: monday }
+    cooldown:
+      default-days: 5
+    groups:
+      bun: { patterns: ["*"] }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    cooldown:
+      default-days: 5
+    groups:
+      github-actions: { patterns: ["*"] }

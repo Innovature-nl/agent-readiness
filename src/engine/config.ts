@@ -29,11 +29,7 @@ export async function loadConfig(repoPath: string): Promise<Config> {
       }
 
       // Any other error (permissions, YAML syntax, etc.) — warn and bail.
-      console.warn(
-        `Warning: failed to parse config file "${filePath}": ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      console.warn(`Warning: failed to parse config file "${filePath}": ${err instanceof Error ? err.message : String(err)}`);
       return {};
     }
   }

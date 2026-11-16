@@ -1,10 +1,10 @@
-import { describe, test, expect, afterEach } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import codeHealth from "../../src/pillars/code-health.js";
+import documentation from "../../src/pillars/documentation.js";
 import styleLinting from "../../src/pillars/style-linting.js";
 import testing from "../../src/pillars/testing.js";
-import documentation from "../../src/pillars/documentation.js";
-import codeHealth from "../../src/pillars/code-health.js";
 import type { LLMClient } from "../../src/types/index.js";
-import { createTestDir, cleanup, writeFixtures, mockProjectInfo, getCheck } from "../helpers.js";
+import { cleanup, createTestDir, getCheck, mockProjectInfo, writeFixtures } from "../helpers.js";
 
 let dirs: string[] = [];
 
@@ -40,7 +40,8 @@ describe("lint-suppressions", () => {
   test("a suppression with a reason does not count", async () => {
     const dir = await make("supp-reason", {
       "main.go": `${lines(100)}\nf() //nolint:errcheck // the response is already written`,
-      "web/a.ts": "// eslint-disable-next-line no-console -- the CLI prints on purpose\nconsole.log(1);\n// biome-ignore lint/style/noNonNullAssertion: set in the constructor\nx!.y();",
+      "web/a.ts":
+        "// eslint-disable-next-line no-console -- the CLI prints on purpose\nconsole.log(1);\n// biome-ignore lint/style/noNonNullAssertion: set in the constructor\nx!.y();",
       "tool.py": "import os  # noqa: F401 re-exported for the plugin API",
     });
     const r = await suppressions(dir, info);
@@ -202,7 +203,8 @@ describe("workaround-comments", () => {
 
   test("fails above one per 1,000 lines and names the files", async () => {
     const dir = await make("wc-bad", {
-      "ui.ts": "// workaround for a flicker, it would be a larger change\nsetTimeout(f, 0);\n// temporary: release later, in case it comes back\nsetTimeout(g, 0);",
+      "ui.ts":
+        "// workaround for a flicker, it would be a larger change\nsetTimeout(f, 0);\n// temporary: release later, in case it comes back\nsetTimeout(g, 0);",
       "x.go": "package x\n// for now we ignore the error\nvar a = 1",
     });
     const r = await workaround(dir, info);
@@ -220,7 +222,12 @@ describe("workaround-comments", () => {
 describe("enforced-agent-rules: what the model is given", () => {
   const capture = () => {
     const seen: string[] = [];
-    const client: LLMClient = { evaluate: async (_q: string, ctx: string) => { seen.push(ctx); return { pass: true, message: "ok" }; } };
+    const client: LLMClient = {
+      evaluate: async (_q: string, ctx: string) => {
+        seen.push(ctx);
+        return { pass: true, message: "ok" };
+      },
+    };
     return { seen, client };
   };
 
@@ -266,7 +273,8 @@ describe("enforced-agent-rules: what the model is given", () => {
     const dir = await make("ear-enforcers", {
       "CLAUDE.md": "Never use time.Sleep.",
       ".claude/hooks/go-post-edit.sh": "#!/bin/sh",
-      ".golangci.yml": "linters:\n  settings:\n    forbidigo:\n      forbid:\n        - pattern: '^time\\.Sleep$'\n          msg: 'use a ticker'\n",
+      ".golangci.yml":
+        "linters:\n  settings:\n    forbidigo:\n      forbid:\n        - pattern: '^time\\.Sleep$'\n          msg: 'use a ticker'\n",
       ".github/workflows/go.yml": "name: go\njobs:\n  test:\n    runs-on: x\n",
       "qa/scripts/check-test-sleeps.py": "print(1)",
     });

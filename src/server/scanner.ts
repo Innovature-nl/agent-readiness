@@ -5,13 +5,13 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-export interface OrgRepo {
+interface OrgRepo {
   name: string;
   description: string;
   pushedAt: string;
 }
 
-export interface ScanStatus {
+interface ScanStatus {
   running: boolean;
   current: string | null;
   queue: string[];
@@ -19,7 +19,7 @@ export interface ScanStatus {
   failed: Array<{ name: string; error: string }>;
 }
 
-export interface ScanServiceOptions {
+interface ScanServiceOptions {
   org: string;
   historyDir: string;
   cacheDir: string;
@@ -70,10 +70,14 @@ export function createScanService(options: ScanServiceOptions) {
       process.argv[1],
       dir,
       "--no-web",
-      "--format", "json",
-      "--history", options.historyDir,
-      "--profile", options.profile,
-      "--github", `${options.org}/${name}`,
+      "--format",
+      "json",
+      "--history",
+      options.historyDir,
+      "--profile",
+      options.profile,
+      "--github",
+      `${options.org}/${name}`,
       ...(options.ai ? ["--ai", "--ai-provider", "claude"] : []),
     ];
     await run(process.execPath, args, { timeout: 15 * 60 * 1000, maxBuffer: 50 * 1024 * 1024 });

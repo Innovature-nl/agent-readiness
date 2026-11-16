@@ -1,23 +1,17 @@
-import type { Pillar } from "../types/index.js";
-import {
-  fileExists,
-  readFileContent,
-  packageJsonHas,
-} from "./utils.js";
 import fg from "fast-glob";
+import type { Pillar } from "../types/index.js";
+import { fileExists, packageJsonHas, readFileContent } from "./utils.js";
 
 const devEnvironment: Pillar = {
   id: "dev-environment",
   name: "Developer Environment",
-  description:
-    "Checks that the project provides a reproducible, well-documented developer environment.",
+  description: "Checks that the project provides a reproducible, well-documented developer environment.",
   icon: "\uD83D\uDD27",
   criteria: [
     {
       id: "lock-file",
       name: "Lock file present",
-      description:
-        "A dependency lock file exists (package-lock.json, uv.lock, yarn.lock, pnpm-lock.yaml, go.sum, etc.).",
+      description: "A dependency lock file exists (package-lock.json, uv.lock, yarn.lock, pnpm-lock.yaml, go.sum, etc.).",
       pillarId: "dev-environment",
       level: 1,
       requiresLLM: false,
@@ -52,16 +46,14 @@ const devEnvironment: Pillar = {
           criterionId: "lock-file",
           pass: false,
           message: "No dependency lock file found.",
-          details:
-            "Commit a lock file to ensure reproducible dependency resolution.",
+          details: "Commit a lock file to ensure reproducible dependency resolution.",
         };
       },
     },
     {
       id: "containerization",
       name: "Containerization",
-      description:
-        "The project includes container configuration (Dockerfile, docker-compose, devcontainer).",
+      description: "The project includes container configuration (Dockerfile, docker-compose, devcontainer).",
       pillarId: "dev-environment",
       level: 3,
       requiresLLM: false,
@@ -90,8 +82,7 @@ const devEnvironment: Pillar = {
           criterionId: "containerization",
           pass: false,
           message: "No container configuration found.",
-          details:
-            "Add a Dockerfile, docker-compose, or .devcontainer for reproducible environments.",
+          details: "Add a Dockerfile, docker-compose, or .devcontainer for reproducible environments.",
         };
       },
     },
@@ -149,16 +140,14 @@ const devEnvironment: Pillar = {
           criterionId: "env-documentation",
           pass: false,
           message: "No environment variable documentation found.",
-          details:
-            "Add a .env.example file listing all required environment variables.",
+          details: "Add a .env.example file listing all required environment variables.",
         };
       },
     },
     {
       id: "setup-script",
       name: "Setup script or dev command",
-      description:
-        'A setup script or dev command is available (Makefile setup/install, scripts/setup, package.json "dev").',
+      description: 'A setup script or dev command is available (Makefile setup/install, scripts/setup, package.json "dev").',
       pillarId: "dev-environment",
       level: 2,
       requiresLLM: false,
@@ -240,16 +229,14 @@ const devEnvironment: Pillar = {
           criterionId: "setup-script",
           pass: false,
           message: "No setup script or dev command found.",
-          details:
-            'Add a Makefile with setup/install targets, scripts/setup, or a "dev" script in package.json.',
+          details: 'Add a Makefile with setup/install targets, scripts/setup, or a "dev" script in package.json.',
         };
       },
     },
     {
       id: "version-pinned",
       name: "Runtime version pinned",
-      description:
-        "The runtime/language version is pinned (.nvmrc, .python-version, .tool-versions, go.mod).",
+      description: "The runtime/language version is pinned (.nvmrc, .python-version, .tool-versions, go.mod).",
       pillarId: "dev-environment",
       level: 2,
       requiresLLM: false,
@@ -307,8 +294,7 @@ const devEnvironment: Pillar = {
           criterionId: "version-pinned",
           pass: false,
           message: "No runtime version pinning found.",
-          details:
-            "Add .nvmrc, .python-version, .tool-versions, or .mise.toml to pin runtime versions.",
+          details: "Add .nvmrc, .python-version, .tool-versions, or .mise.toml to pin runtime versions.",
         };
       },
     },

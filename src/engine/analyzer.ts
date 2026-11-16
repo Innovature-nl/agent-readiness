@@ -1,18 +1,10 @@
-import type {
-  Pillar,
-  ProjectInfo,
-  CriterionResult,
-  LLMClient,
-} from "../types/index.js";
 import { notApplicableReason } from "../pillars/applicability.js";
+import type { CriterionResult, LLMClient, Pillar, ProjectInfo } from "../types/index.js";
 
-export type OnPillarStart = (pillar: Pillar) => void;
-export type OnPillarComplete = (
-  pillar: Pillar,
-  results: CriterionResult[],
-) => void;
+type OnPillarStart = (pillar: Pillar) => void;
+type OnPillarComplete = (pillar: Pillar, results: CriterionResult[]) => void;
 
-export interface AnalysisEngineOptions {
+interface AnalysisEngineOptions {
   aiEnabled?: boolean;
   llmClient?: LLMClient;
   onPillarStart?: OnPillarStart;
@@ -28,12 +20,7 @@ export class AnalysisEngine {
   private onPillarStart?: OnPillarStart;
   private onPillarComplete?: OnPillarComplete;
 
-  constructor(
-    pillars: Pillar[],
-    repoPath: string,
-    projectInfo: ProjectInfo,
-    options?: AnalysisEngineOptions,
-  ) {
+  constructor(pillars: Pillar[], repoPath: string, projectInfo: ProjectInfo, options?: AnalysisEngineOptions) {
     this.pillars = pillars;
     this.repoPath = repoPath;
     this.projectInfo = projectInfo;
@@ -51,9 +38,7 @@ export class AnalysisEngine {
       this.onPillarStart?.(pillar);
 
       // Run criteria within a pillar concurrently
-      const criteriaResults = await Promise.all(
-        pillar.criteria.map((criterion) => this.runCriterion(criterion)),
-      );
+      const criteriaResults = await Promise.all(pillar.criteria.map((criterion) => this.runCriterion(criterion)));
 
       allResults.set(pillar.id, criteriaResults);
       this.onPillarComplete?.(pillar, criteriaResults);
@@ -62,9 +47,7 @@ export class AnalysisEngine {
     return allResults;
   }
 
-  private async runCriterion(
-    criterion: Pillar["criteria"][number],
-  ): Promise<CriterionResult> {
+  private async runCriterion(criterion: Pillar["criteria"][number]): Promise<CriterionResult> {
     // Skip LLM-required criteria when AI is not enabled
     if (criterion.requiresLLM && !this.aiEnabled) {
       return {
@@ -81,14 +64,9 @@ export class AnalysisEngine {
     }
 
     try {
-      return await criterion.check(
-        this.repoPath,
-        this.projectInfo,
-        this.llmClient,
-      );
+      return await criterion.check(this.repoPath, this.projectInfo, this.llmClient);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         criterionId: criterion.id,
         pass: false,

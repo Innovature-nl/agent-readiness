@@ -1,27 +1,27 @@
-import { Command } from "commander";
-import path from "node:path";
 import fs from "node:fs/promises";
-import ora from "ora";
+import os from "node:os";
+import path from "node:path";
 import chalk from "chalk";
-import { version, description } from "../../package.json";
-import type { CLIOptions, Pillar, ReportData } from "../types/index.js";
-import { detectProject } from "../engine/detector.js";
+import { Command } from "commander";
+import ora from "ora";
+import { description, version } from "../../package.json";
 import { AnalysisEngine } from "../engine/analyzer.js";
-import { calculatePillarScores, calculateLevel } from "../engine/scorer.js";
-import { generateRecommendations } from "../engine/recommender.js";
-import { ALL_PILLARS } from "../pillars/index.js";
-import { applyProfile, parseProfile, PROFILES } from "../pillars/profiles.js";
+import { generateDefaultConfig, loadConfig } from "../engine/config.js";
+import { detectProject } from "../engine/detector.js";
 import { detectGitHubRepo, fetchGitHubSettings } from "../engine/github.js";
+import { diffSnapshots, loadHistory, saveSnapshot, summarizeOrg, toSnapshot } from "../engine/history.js";
+import { createClaudeCliClient, createLLMClient } from "../engine/llm-client.js";
+import { generateRecommendations } from "../engine/recommender.js";
+import { calculateLevel, calculatePillarScores } from "../engine/scorer.js";
+import { serializeReport } from "../engine/serializer.js";
+import { ALL_PILLARS } from "../pillars/index.js";
+import { applyProfile, PROFILES, parseProfile } from "../pillars/profiles.js";
+import { renderHistoryDiff, renderOrgSummary } from "../renderer/history.js";
 import { renderReport } from "../renderer/index.js";
 import { renderMarkdown } from "../renderer/markdown.js";
-import { loadConfig, generateDefaultConfig } from "../engine/config.js";
-import { createLLMClient, createClaudeCliClient } from "../engine/llm-client.js";
-import { serializeReport } from "../engine/serializer.js";
-import { startServer, openBrowser } from "../server/index.js";
+import { openBrowser, startServer } from "../server/index.js";
 import { createScanService } from "../server/scanner.js";
-import os from "node:os";
-import { toSnapshot, saveSnapshot, diffSnapshots, loadHistory, summarizeOrg } from "../engine/history.js";
-import { renderHistoryDiff, renderOrgSummary } from "../renderer/history.js";
+import type { CLIOptions, Pillar, ReportData } from "../types/index.js";
 
 /**
  * Main orchestration function.
@@ -60,17 +60,13 @@ async function main(options: CLIOptions): Promise<void> {
       const configPath = path.join(repoPath, ".agent-readiness.yml");
       try {
         await fs.access(configPath);
-        console.error(
-          chalk.yellow(`Config file already exists: ${configPath}`),
-        );
+        console.error(chalk.yellow(`Config file already exists: ${configPath}`));
         process.exit(1);
       } catch {
         // File doesn't exist, good to create
       }
       await fs.writeFile(configPath, generateDefaultConfig(), "utf-8");
-      console.log(
-        chalk.green(`Created config file: ${configPath}`),
-      );
+      console.log(chalk.green(`Created config file: ${configPath}`));
       return;
     }
 
@@ -113,9 +109,7 @@ async function main(options: CLIOptions): Promise<void> {
     if (config.criteria) {
       pillars = pillars.map((p) => ({
         ...p,
-        criteria: p.criteria.filter(
-          (c) => config.criteria![c.id] !== false,
-        ),
+        criteria: p.criteria.filter((c) => config.criteria![c.id] !== false),
       }));
     }
 
@@ -159,12 +153,7 @@ async function main(options: CLIOptions): Promise<void> {
     const levelResult = calculateLevel(pillars, results);
 
     // k. Generate recommendations
-    const recommendations = generateRecommendations(
-      pillars,
-      results,
-      pillarScores,
-      levelResult,
-    );
+    const recommendations = generateRecommendations(pillars, results, pillarScores, levelResult);
 
     // l. Stop spinner
     spinner.stop();
@@ -206,9 +195,7 @@ async function main(options: CLIOptions): Promise<void> {
       try {
         const { url } = await startServer(serialized);
         console.log("");
-        console.log(
-          chalk.bold.cyan("  Dashboard: ") + chalk.underline(url),
-        );
+        console.log(chalk.bold.cyan("  Dashboard: ") + chalk.underline(url));
         console.log(chalk.dim("  Press Ctrl+C to stop the server."));
         console.log("");
         await openBrowser(url);
@@ -221,10 +208,7 @@ async function main(options: CLIOptions): Promise<void> {
     }
 
     // q. If --min-level is set and level is below threshold, exit with code 1
-    if (
-      options.minLevel !== undefined &&
-      levelResult.level < options.minLevel
-    ) {
+    if (options.minLevel !== undefined && levelResult.level < options.minLevel) {
       process.exit(1);
     }
   } catch (error) {
@@ -259,7 +243,11 @@ export function run(): void {
     .option("--no-web", "Disable the web dashboard")
     .option("--history <dir>", "Store a snapshot in <dir> and show changes since the last run")
     .option("--profile <name>", `Check set to use (${PROFILES.join(", ")}); internal skips open-source-only checks`, "default")
-    .option("--ai-provider <name>", "LLM for --ai: openai (OpenAI-compatible API, needs a key) or claude (local Claude Code CLI login)", "openai")
+    .option(
+      "--ai-provider <name>",
+      "LLM for --ai: openai (OpenAI-compatible API, needs a key) or claude (local Claude Code CLI login)",
+      "openai",
+    )
     .option("--github [owner/repo]", "Also read branch protection and security settings from GitHub with the gh CLI")
     .action(async (pathArg: string, opts: Record<string, unknown>) => {
       const cliOptions: CLIOptions = {
@@ -296,45 +284,76 @@ export function run(): void {
     .option("--github-org <org>", "Let the dashboard list this GitHub organization and scan repositories from it (uses gh)")
     .option("--scan-ai", "Include the --ai checks, through the Claude Code CLI, in scans started from the dashboard")
     .option("--cache <dir>", "Where dashboard scans keep their clones", path.join(os.homedir(), ".cache", "agent-readiness", "repos"))
-    .action(async (dir: string, opts: { format: string; web: boolean; profile: string; repos?: string; port: string; open: boolean; githubOrg?: string; scanAi?: boolean; cache: string }) => {
-      const pillars = applyProfile(ALL_PILLARS, parseProfile(opts.profile));
-      const wanted = opts.repos ? new Set(opts.repos.split(",").map((r) => r.trim()).filter(Boolean)) : null;
-      // Runs again on every page load, so a refresh picks up new scans.
-      const load = async () => {
-        const history = await loadHistory(path.resolve(dir));
-        if (wanted) for (const name of history.keys()) if (!wanted.has(name)) history.delete(name);
-        return { ...summarizeOrg(history, pillars), ...(opts.githubOrg ? { github: { org: opts.githubOrg, ai: Boolean(opts.scanAi) } } : {}) };
-      };
-      const summary = await load();
-      const missing = wanted ? [...wanted].filter((r) => !summary.repos.some((repo) => repo.repoName === r)) : [];
-      if (missing.length) console.warn(chalk.yellow(`No snapshots for: ${missing.join(", ")}`));
-      if (opts.format === "json") {
-        console.log(JSON.stringify(summary, null, 2));
-        return;
-      }
-      renderOrgSummary(summary);
-      if (!opts.web || (summary.repos.length === 0 && !opts.githubOrg)) return;
-      try {
-        const scanner = opts.githubOrg
-          ? createScanService({
-              org: opts.githubOrg,
-              historyDir: path.resolve(dir),
-              cacheDir: path.resolve(opts.cache),
-              profile: opts.profile,
-              ai: Boolean(opts.scanAi),
-            })
-          : undefined;
-        const { url } = await startServer(load, "__AGENT_READINESS_ORG__", Number(opts.port), scanner);
-        console.log(chalk.bold.cyan("  Dashboard: ") + chalk.underline(url));
-        console.log(chalk.dim("  Refresh the page to see new scans. Press Ctrl+C to stop the server."));
-        if (opts.open) await openBrowser(url);
-        await new Promise(() => {});
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        const inUse = (err as NodeJS.ErrnoException)?.code === "EADDRINUSE";
-        console.error(chalk.red(inUse ? `Port ${opts.port} is in use; a dashboard may already run there, or pass --port.` : `Failed to start web dashboard: ${msg}`));
-      }
-    });
+    .action(
+      async (
+        dir: string,
+        opts: {
+          format: string;
+          web: boolean;
+          profile: string;
+          repos?: string;
+          port: string;
+          open: boolean;
+          githubOrg?: string;
+          scanAi?: boolean;
+          cache: string;
+        },
+      ) => {
+        const pillars = applyProfile(ALL_PILLARS, parseProfile(opts.profile));
+        const wanted = opts.repos
+          ? new Set(
+              opts.repos
+                .split(",")
+                .map((r) => r.trim())
+                .filter(Boolean),
+            )
+          : null;
+        // Runs again on every page load, so a refresh picks up new scans.
+        const load = async () => {
+          const history = await loadHistory(path.resolve(dir));
+          if (wanted) for (const name of history.keys()) if (!wanted.has(name)) history.delete(name);
+          return {
+            ...summarizeOrg(history, pillars),
+            ...(opts.githubOrg ? { github: { org: opts.githubOrg, ai: Boolean(opts.scanAi) } } : {}),
+          };
+        };
+        const summary = await load();
+        const missing = wanted ? [...wanted].filter((r) => !summary.repos.some((repo) => repo.repoName === r)) : [];
+        if (missing.length) console.warn(chalk.yellow(`No snapshots for: ${missing.join(", ")}`));
+        if (opts.format === "json") {
+          console.log(JSON.stringify(summary, null, 2));
+          return;
+        }
+        renderOrgSummary(summary);
+        if (!opts.web || (summary.repos.length === 0 && !opts.githubOrg)) return;
+        try {
+          const scanner = opts.githubOrg
+            ? createScanService({
+                org: opts.githubOrg,
+                historyDir: path.resolve(dir),
+                cacheDir: path.resolve(opts.cache),
+                profile: opts.profile,
+                ai: Boolean(opts.scanAi),
+              })
+            : undefined;
+          const { url } = await startServer(load, "__AGENT_READINESS_ORG__", Number(opts.port), scanner);
+          console.log(chalk.bold.cyan("  Dashboard: ") + chalk.underline(url));
+          console.log(chalk.dim("  Refresh the page to see new scans. Press Ctrl+C to stop the server."));
+          if (opts.open) await openBrowser(url);
+          await new Promise(() => {});
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const inUse = (err as NodeJS.ErrnoException)?.code === "EADDRINUSE";
+          console.error(
+            chalk.red(
+              inUse
+                ? `Port ${opts.port} is in use; a dashboard may already run there, or pass --port.`
+                : `Failed to start web dashboard: ${msg}`,
+            ),
+          );
+        }
+      },
+    );
 
   program.parse();
 }

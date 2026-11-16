@@ -1,0 +1,5 @@
+[
+  { "name": "CLI (dist/index.js)", "path": "dist/index.js", "limit": "200 kB" },
+  { "name": "Dashboard JS", "path": "dist/web/assets/*.js", "limit": "200 kB" },
+  { "name": "Dashboard CSS", "path": "dist/web/assets/*.css", "limit": "6 kB" }
+]

@@ -1,4 +1,4 @@
-import { describe, test, expect, afterEach } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { createLLMClient, DEFAULT_MODEL } from "../../src/engine/llm-client.js";
 
 interface CapturedRequest {
@@ -20,9 +20,7 @@ describe("createLLMClient", () => {
   function mockFetch(content: string): void {
     globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
       const headers: Record<string, string> = {};
-      for (const [key, value] of Object.entries(
-        (init?.headers ?? {}) as Record<string, string>,
-      )) {
+      for (const [key, value] of Object.entries((init?.headers ?? {}) as Record<string, string>)) {
         headers[key.toLowerCase()] = value;
       }
       captured = {
@@ -40,9 +38,7 @@ describe("createLLMClient", () => {
   }
 
   test("sends default model when none is configured", async () => {
-    mockFetch(
-      JSON.stringify({ pass: true, message: "ok", details: "details" }),
-    );
+    mockFetch(JSON.stringify({ pass: true, message: "ok", details: "details" }));
     const client = createLLMClient({ apiKey: "test-key" });
     await client.evaluate("criterion", "context");
 
@@ -50,9 +46,7 @@ describe("createLLMClient", () => {
   });
 
   test("sends configured model in request body", async () => {
-    mockFetch(
-      JSON.stringify({ pass: true, message: "ok", details: "details" }),
-    );
+    mockFetch(JSON.stringify({ pass: true, message: "ok", details: "details" }));
     const client = createLLMClient({
       apiKey: "test-key",
       model: "deepseek-v4.1-flash",
@@ -66,9 +60,7 @@ describe("createLLMClient", () => {
   });
 
   test("respects empty-string model as absent, falling back to default", async () => {
-    mockFetch(
-      JSON.stringify({ pass: true, message: "ok", details: "details" }),
-    );
+    mockFetch(JSON.stringify({ pass: true, message: "ok", details: "details" }));
     const client = createLLMClient({ apiKey: "test-key", model: "" });
     await client.evaluate("criterion", "context");
 
@@ -76,9 +68,7 @@ describe("createLLMClient", () => {
   });
 
   test("returns parsed pass/message/details from response", async () => {
-    mockFetch(
-      JSON.stringify({ pass: false, message: "not good", details: "why" }),
-    );
+    mockFetch(JSON.stringify({ pass: false, message: "not good", details: "why" }));
     const client = createLLMClient({ apiKey: "test-key" });
     const result = await client.evaluate("criterion", "context");
 
@@ -93,7 +83,9 @@ describe("createClaudeCliClient", () => {
     const os = await import("node:os");
     const path = await import("node:path");
     const bin = path.join(await fs.mkdtemp(path.join(os.tmpdir(), "fake-claude-")), "claude");
-    await fs.writeFile(bin, '#!/bin/sh\ncat >/dev/null\necho \'{"is_error":false,"structured_output":{"pass":true,"message":"ok"}}\'\n', { mode: 0o755 });
+    await fs.writeFile(bin, '#!/bin/sh\ncat >/dev/null\necho \'{"is_error":false,"structured_output":{"pass":true,"message":"ok"}}\'\n', {
+      mode: 0o755,
+    });
     expect(await createClaudeCliClient({ bin }).evaluate("p", "c")).toEqual({ pass: true, message: "ok" });
   });
 

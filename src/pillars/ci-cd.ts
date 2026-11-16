@@ -1,25 +1,12 @@
-import type { Pillar } from "../types/index.js";
-import {
-  fileExists,
-  readFileContent,
-  packageJsonHas,
-} from "./utils.js";
 import fg from "fast-glob";
+import type { Pillar } from "../types/index.js";
+import { fileExists, packageJsonHas, readFileContent } from "./utils.js";
 
-async function getCIConfigContents(
-  repoPath: string,
-): Promise<{ file: string; content: string }[]> {
+async function getCIConfigContents(repoPath: string): Promise<{ file: string; content: string }[]> {
   const results: { file: string; content: string }[] = [];
 
   const ciFiles = await fg(
-    [
-      ".github/workflows/*.yml",
-      ".github/workflows/*.yaml",
-      ".gitlab-ci.yml",
-      ".circleci/config.yml",
-      "Jenkinsfile",
-      ".travis.yml",
-    ],
+    [".github/workflows/*.yml", ".github/workflows/*.yaml", ".gitlab-ci.yml", ".circleci/config.yml", "Jenkinsfile", ".travis.yml"],
     { cwd: repoPath, absolute: false, dot: true },
   );
 
@@ -36,15 +23,13 @@ async function getCIConfigContents(
 const ciCd: Pillar = {
   id: "ci-cd",
   name: "CI/CD",
-  description:
-    "Verifies that continuous integration and delivery pipelines are in place and comprehensive.",
+  description: "Verifies that continuous integration and delivery pipelines are in place and comprehensive.",
   icon: "\u2699\uFE0F",
   criteria: [
     {
       id: "ci-config",
       name: "CI configuration present",
-      description:
-        "A CI configuration file exists (GitHub Actions, GitLab CI, CircleCI, Jenkins, Travis).",
+      description: "A CI configuration file exists (GitHub Actions, GitLab CI, CircleCI, Jenkins, Travis).",
       pillarId: "ci-cd",
       level: 2,
       requiresLLM: false,
@@ -69,16 +54,14 @@ const ciCd: Pillar = {
           criterionId: "ci-config",
           pass: false,
           message: "No CI configuration found.",
-          details:
-            "Add a CI pipeline using GitHub Actions, GitLab CI, CircleCI, or similar.",
+          details: "Add a CI pipeline using GitHub Actions, GitLab CI, CircleCI, or similar.",
         };
       },
     },
     {
       id: "ci-runs-tests",
       name: "CI runs tests",
-      description:
-        "The CI pipeline runs tests (jest, vitest, pytest, go test, or generic test commands).",
+      description: "The CI pipeline runs tests (jest, vitest, pytest, go test, or generic test commands).",
       pillarId: "ci-cd",
       level: 3,
       requiresLLM: false,
@@ -109,8 +92,7 @@ const ciCd: Pillar = {
           criterionId: "ci-runs-tests",
           pass: false,
           message: "CI configuration found but no test execution detected.",
-          details:
-            "Add a test step to your CI pipeline to run tests automatically.",
+          details: "Add a test step to your CI pipeline to run tests automatically.",
         };
       },
     },
@@ -149,25 +131,20 @@ const ciCd: Pillar = {
           criterionId: "ci-runs-linters",
           pass: false,
           message: "CI configuration found but no linter execution detected.",
-          details:
-            "Add a lint step to your CI pipeline to enforce code quality.",
+          details: "Add a lint step to your CI pipeline to enforce code quality.",
         };
       },
     },
     {
       id: "build-automated",
       name: "Build automated",
-      description:
-        "The build process is automated via a script or CI step.",
+      description: "The build process is automated via a script or CI step.",
       pillarId: "ci-cd",
       level: 3,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
         // Check package.json for build script
-        const hasBuildScript = await packageJsonHas(
-          repoPath,
-          "scripts.build",
-        );
+        const hasBuildScript = await packageJsonHas(repoPath, "scripts.build");
         if (hasBuildScript) {
           return {
             criterionId: "build-automated",
@@ -205,23 +182,20 @@ const ciCd: Pillar = {
           criterionId: "build-automated",
           pass: false,
           message: "No automated build process found.",
-          details:
-            'Add a "build" script in package.json or a build step in your CI pipeline.',
+          details: 'Add a "build" script in package.json or a build step in your CI pipeline.',
         };
       },
     },
     {
       id: "deploy-pipeline",
       name: "Deploy pipeline",
-      description:
-        "A deployment pipeline or stage is configured in CI or as a dedicated deploy config.",
+      description: "A deployment pipeline or stage is configured in CI or as a dedicated deploy config.",
       pillarId: "ci-cd",
       level: 4,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
         const configs = await getCIConfigContents(repoPath);
-        const deployPatterns =
-          /\b(deploy|deployment|publish|release|cd\s*:|(terraform|tofu)\s+apply)\b/i;
+        const deployPatterns = /\b(deploy|deployment|publish|release|cd\s*:|(terraform|tofu)\s+apply)\b/i;
 
         for (const { file, content } of configs) {
           if (deployPatterns.test(content)) {
@@ -272,16 +246,14 @@ const ciCd: Pillar = {
           criterionId: "deploy-pipeline",
           pass: false,
           message: "No deploy pipeline found.",
-          details:
-            "Add a deploy stage to your CI or configure a deployment platform.",
+          details: "Add a deploy stage to your CI or configure a deployment platform.",
         };
       },
     },
     {
       id: "branch-protection",
       name: "Branch protection awareness",
-      description:
-        "Branch protection rules are mentioned in docs or configured via .github settings.",
+      description: "Branch protection rules are mentioned in docs or configured via .github settings.",
       pillarId: "ci-cd",
       level: 4,
       requiresLLM: false,
@@ -289,8 +261,17 @@ const ciCd: Pillar = {
         const gh = _projectInfo.github;
         if (gh) {
           return gh.branchProtected
-            ? { criterionId: "branch-protection", pass: true, message: `${gh.defaultBranch} is protected on GitHub${gh.branchRules.length ? ` (${gh.branchRules.join(", ")})` : ""}` }
-            : { criterionId: "branch-protection", pass: false, message: `${gh.defaultBranch} has no branch protection or ruleset on GitHub.`, details: "Add a ruleset that requires a pull request and blocks force pushes." };
+            ? {
+                criterionId: "branch-protection",
+                pass: true,
+                message: `${gh.defaultBranch} is protected on GitHub${gh.branchRules.length ? ` (${gh.branchRules.join(", ")})` : ""}`,
+              }
+            : {
+                criterionId: "branch-protection",
+                pass: false,
+                message: `${gh.defaultBranch} has no branch protection or ruleset on GitHub.`,
+                details: "Add a ruleset that requires a pull request and blocks force pushes.",
+              };
         }
 
         // Check for branch protection in .github settings
@@ -301,10 +282,7 @@ const ciCd: Pillar = {
           ".github/settings.yaml",
         );
         if (branchProtectionFile) {
-          const content = await readFileContent(
-            repoPath,
-            branchProtectionFile,
-          );
+          const content = await readFileContent(repoPath, branchProtectionFile);
           if (content && /branch.?protection|protected.?branch/i.test(content)) {
             return {
               criterionId: "branch-protection",
@@ -315,16 +293,8 @@ const ciCd: Pillar = {
         }
 
         // Check CONTRIBUTING.md for branch protection mentions
-        const contributing = await readFileContent(
-          repoPath,
-          "CONTRIBUTING.md",
-        );
-        if (
-          contributing &&
-          /branch.?protection|protected.?branch|required.?review/i.test(
-            contributing,
-          )
-        ) {
+        const contributing = await readFileContent(repoPath, "CONTRIBUTING.md");
+        if (contributing && /branch.?protection|protected.?branch|required.?review/i.test(contributing)) {
           return {
             criterionId: "branch-protection",
             pass: true,
@@ -333,10 +303,7 @@ const ciCd: Pillar = {
         }
 
         // Check for .github/settings.yml with branches config
-        const settingsContent = await readFileContent(
-          repoPath,
-          ".github/settings.yml",
-        );
+        const settingsContent = await readFileContent(repoPath, ".github/settings.yml");
         if (settingsContent && /branches:/i.test(settingsContent)) {
           return {
             criterionId: "branch-protection",
@@ -349,8 +316,7 @@ const ciCd: Pillar = {
           criterionId: "branch-protection",
           pass: false,
           message: "No branch protection rules documented or configured.",
-          details:
-            "Document branch protection rules in CONTRIBUTING.md or configure via .github/settings.yml.",
+          details: "Document branch protection rules in CONTRIBUTING.md or configure via .github/settings.yml.",
         };
       },
     },

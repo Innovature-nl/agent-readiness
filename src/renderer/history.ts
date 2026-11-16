@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import Table from "cli-table3";
+import type { OrgSummary, SnapshotDiff } from "../engine/history.js";
 import type { MaturityLevel } from "../types/index.js";
 import { LEVEL_LABELS } from "../types/index.js";
-import type { OrgSummary, SnapshotDiff } from "../engine/history.js";
 
 function signed(n: number, suffix = ""): string {
   if (n > 0) return chalk.green(`+${n}${suffix}`);
@@ -17,7 +17,9 @@ export function renderHistoryDiff(diff: SnapshotDiff | undefined, previousTimest
     console.log("");
     return;
   }
-  console.log(`  ${chalk.bold("Since")} ${previousTimestamp}: level ${signed(diff.levelDelta)}, score ${signed(diff.percentageDelta, "%")}`);
+  console.log(
+    `  ${chalk.bold("Since")} ${previousTimestamp}: level ${signed(diff.levelDelta)}, score ${signed(diff.percentageDelta, "%")}`,
+  );
   for (const id of diff.newlyPassing) console.log(`    ${chalk.green("now passing")}  ${id}`);
   for (const id of diff.newlyFailing) console.log(`    ${chalk.red("now failing")}  ${id}`);
   console.log("");

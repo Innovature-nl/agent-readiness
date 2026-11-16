@@ -1,12 +1,6 @@
-import { describe, test, expect, afterEach } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import testing from "../../src/pillars/testing.js";
-import {
-  createTestDir,
-  cleanup,
-  writeFixtures,
-  mockProjectInfo,
-  getCheck,
-} from "../helpers.js";
+import { cleanup, createTestDir, getCheck, mockProjectInfo, writeFixtures } from "../helpers.js";
 
 let dirs: string[] = [];
 
@@ -33,6 +27,18 @@ const coverageCheck = getCheck(testing, "coverage-config");
 // test-framework
 // ---------------------------------------------------------------------------
 describe("test-framework", () => {
+  test("bun: bun test script in package.json", async () => {
+    const dir = await make("bun-fw", { "package.json": JSON.stringify({ scripts: { test: "bun test" } }) });
+    const r = await frameworkCheck(dir, mockProjectInfo({ detectedTypes: ["node"] }));
+    expect(r.pass).toBe(true);
+  });
+
+  test("bun: a bun run script that is not bun test does not count", async () => {
+    const dir = await make("bun-no-fw", { "package.json": JSON.stringify({ scripts: { test: "bun run lint" } }) });
+    const r = await frameworkCheck(dir, mockProjectInfo({ detectedTypes: ["node"] }));
+    expect(r.pass).toBe(false);
+  });
+
   test("csharp: xunit in .csproj", async () => {
     const dir = await make("cs-fw", {
       "Tests.csproj": '<PackageReference Include="xunit" Version="2.6" />',

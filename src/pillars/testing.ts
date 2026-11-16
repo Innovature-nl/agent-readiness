@@ -1,24 +1,18 @@
+import fg from "fast-glob";
 import type { Pillar } from "../types/index.js";
 import { guardrailTestingCriteria } from "./guardrails.js";
-import {
-  fileExists,
-  readFileContent,
-  packageJsonHas,
-} from "./utils.js";
-import fg from "fast-glob";
+import { fileExists, packageJsonHas, readFileContent } from "./utils.js";
 
 const testing: Pillar = {
   id: "testing",
   name: "Testing",
-  description:
-    "Evaluates the presence, breadth, and automation of the project's test suite.",
+  description: "Evaluates the presence, breadth, and automation of the project's test suite.",
   icon: "\uD83E\uDDEA",
   criteria: [
     {
       id: "test-framework",
       name: "Test framework configured",
-      description:
-        "A test framework is installed and configured (Jest, Vitest, pytest, Go testing).",
+      description: "A test framework is installed and configured (Jest, Vitest, pytest, Go testing).",
       pillarId: "testing",
       level: 2,
       requiresLLM: false,
@@ -32,6 +26,17 @@ const testing: Pillar = {
             criterionId: "test-framework",
             pass: true,
             message: `Test framework configuration found: ${found}`,
+          };
+        }
+
+        // Bun's built-in runner needs no config file: bunfig.toml or a `bun test` script
+        const bunfig = await fileExists(repoPath, "bunfig.toml");
+        const testScript = (await readFileContent(repoPath, "package.json"))?.match(/"test"\s*:\s*"[^"]*\bbun test\b/);
+        if (bunfig || testScript) {
+          return {
+            criterionId: "test-framework",
+            pass: true,
+            message: `Bun test runner found: ${bunfig ?? "bun test script in package.json"}`,
           };
         }
 
@@ -73,7 +78,7 @@ const testing: Pillar = {
             buildGradleKts.includes("junit") ||
             buildGradleKts.includes("jupiter") ||
             buildGradleKts.includes("kotlin.test") ||
-            buildGradleKts.includes("kotlin(\"test\")")
+            buildGradleKts.includes('kotlin("test")')
           ) {
             return {
               criterionId: "test-framework",
@@ -152,12 +157,13 @@ const testing: Pillar = {
         const csprojFiles = await fg("**/*.csproj", { cwd: repoPath, absolute: false, ignore: ["node_modules/**", "vendor/**"] });
         for (const csproj of csprojFiles) {
           const csprojContent = await readFileContent(repoPath, csproj);
-          if (csprojContent && (
-            csprojContent.includes("xunit") ||
-            csprojContent.includes("nunit") ||
-            csprojContent.includes("MSTest") ||
-            csprojContent.includes("Microsoft.NET.Test.Sdk")
-          )) {
+          if (
+            csprojContent &&
+            (csprojContent.includes("xunit") ||
+              csprojContent.includes("nunit") ||
+              csprojContent.includes("MSTest") ||
+              csprojContent.includes("Microsoft.NET.Test.Sdk"))
+          ) {
             return {
               criterionId: "test-framework",
               pass: true,
@@ -208,8 +214,7 @@ const testing: Pillar = {
     {
       id: "test-files-exist",
       name: "Test files exist",
-      description:
-        "The project contains actual test files (.test.*, .spec.*, test_*.py, *_test.go).",
+      description: "The project contains actual test files (.test.*, .spec.*, test_*.py, *_test.go).",
       pillarId: "testing",
       level: 2,
       requiresLLM: false,
@@ -266,16 +271,12 @@ const testing: Pillar = {
     {
       id: "test-script",
       name: "Test script defined",
-      description:
-        'A "test" script is defined in package.json or a test target in Makefile.',
+      description: 'A "test" script is defined in package.json or a test target in Makefile.',
       pillarId: "testing",
       level: 2,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
-        const hasTestScript = await packageJsonHas(
-          repoPath,
-          "scripts.test",
-        );
+        const hasTestScript = await packageJsonHas(repoPath, "scripts.test");
         if (hasTestScript) {
           return {
             criterionId: "test-script",
@@ -400,19 +401,13 @@ const testing: Pillar = {
     {
       id: "coverage-config",
       name: "Coverage configured",
-      description:
-        "Test coverage reporting is configured (coverage in Jest/Vitest, .coveragerc, .nycrc).",
+      description: "Test coverage reporting is configured (coverage in Jest/Vitest, .coveragerc, .nycrc).",
       pillarId: "testing",
       level: 4,
       requiresLLM: false,
       check: async (repoPath, _projectInfo) => {
         // Check dedicated coverage config files
-        const found = await fileExists(
-          repoPath,
-          ".coveragerc",
-          ".nycrc",
-          ".nycrc.*",
-        );
+        const found = await fileExists(repoPath, ".coveragerc", ".nycrc", ".nycrc.*");
         if (found) {
           return {
             criterionId: "coverage-config",
@@ -541,10 +536,7 @@ const testing: Pillar = {
         }
 
         // Check CI config files for coverage mentions
-        const ciFiles = await fg(
-          [".github/workflows/*.yml", ".github/workflows/*.yaml"],
-          { cwd: repoPath, absolute: false, dot: true },
-        );
+        const ciFiles = await fg([".github/workflows/*.yml", ".github/workflows/*.yaml"], { cwd: repoPath, absolute: false, dot: true });
         for (const ciFile of ciFiles) {
           const content = await readFileContent(repoPath, ciFile);
           if (content && content.includes("coverage")) {
@@ -568,8 +560,7 @@ const testing: Pillar = {
     {
       id: "e2e-tests",
       name: "E2E / integration tests",
-      description:
-        "End-to-end or integration tests are configured (Playwright, Cypress, e2e directories).",
+      description: "End-to-end or integration tests are configured (Playwright, Cypress, e2e directories).",
       pillarId: "testing",
       level: 4,
       requiresLLM: false,
@@ -590,16 +581,14 @@ const testing: Pillar = {
           criterionId: "e2e-tests",
           pass: false,
           message: "No E2E or integration test setup found.",
-          details:
-            "Add Playwright, Cypress, or an e2e/integration directory for higher-level tests.",
+          details: "Add Playwright, Cypress, or an e2e/integration directory for higher-level tests.",
         };
       },
     },
     {
       id: "test-quality",
       name: "Test quality (AI)",
-      description:
-        "Tests are meaningful, well-structured, and provide good coverage of key functionality.",
+      description: "Tests are meaningful, well-structured, and provide good coverage of key functionality.",
       pillarId: "testing",
       level: 5,
       requiresLLM: true,
@@ -613,7 +602,23 @@ const testing: Pillar = {
         }
 
         const testFiles = await fg(
-          ["**/*.test.*", "**/*.spec.*", "**/test_*.py", "**/*_test.go", "**/*Test.kt", "**/*Spec.kt", "src/test/**/*.kt", "**/*Test.java", "src/test/**/*.java", "tests/**/*.rs", "**/*Test.cs", "**/*Tests.cs", "spec/**/*_spec.rb", "tests/**/*Test.php", "Tests/**/*Tests.swift"],
+          [
+            "**/*.test.*",
+            "**/*.spec.*",
+            "**/test_*.py",
+            "**/*_test.go",
+            "**/*Test.kt",
+            "**/*Spec.kt",
+            "src/test/**/*.kt",
+            "**/*Test.java",
+            "src/test/**/*.java",
+            "tests/**/*.rs",
+            "**/*Test.cs",
+            "**/*Tests.cs",
+            "spec/**/*_spec.rb",
+            "tests/**/*Test.php",
+            "Tests/**/*Tests.swift",
+          ],
           {
             cwd: repoPath,
             absolute: false,
@@ -639,10 +644,12 @@ const testing: Pillar = {
           }
         }
 
-        return llmClient.evaluate(
-          "Evaluate the quality of these test files. Good tests should: test meaningful behavior (not just implementation details), have descriptive test names, cover both happy path and error cases, be readable and maintainable, and avoid excessive mocking. Are these tests sufficient for an AI agent to confidently make changes and verify correctness?",
-          snippets.join("\n\n"),
-        ).then((r) => ({ ...r, criterionId: "test-quality" }));
+        return llmClient
+          .evaluate(
+            "Evaluate the quality of these test files. Good tests should: test meaningful behavior (not just implementation details), have descriptive test names, cover both happy path and error cases, be readable and maintainable, and avoid excessive mocking. Are these tests sufficient for an AI agent to confidently make changes and verify correctness?",
+            snippets.join("\n\n"),
+          )
+          .then((r) => ({ ...r, criterionId: "test-quality" }));
       },
     },
     ...guardrailTestingCriteria,
