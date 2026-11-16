@@ -106,7 +106,7 @@ export const CRITERION_INFO: Record<
   },
   "ai-context": {
     description:
-      "Add AI context files such as CLAUDE.md, .cursorrules, or .github/copilot-instructions.md with project-specific guidance",
+      "Add AI context files such as AGENTS.md, CLAUDE.md, .cursorrules, or .github/copilot-instructions.md with project-specific guidance",
     reason:
       "AI context files give agents tailored instructions about architecture decisions, patterns to follow, and pitfalls to avoid",
   },
