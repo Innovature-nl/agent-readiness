@@ -7,8 +7,24 @@ import {
   packageJsonHas,
 } from "./utils.js";
 import fg from "fast-glob";
+import YAML from "yaml";
 
 const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
+
+// shortcut: .golangci.toml is not parsed, add a TOML parser when a repo needs it.
+const GOLANGCI_CONFIGS = [".golangci.yml", ".golangci.yaml", ".golangci.json"];
+
+/** Whether a parsed golangci-lint config (v1 or v2) runs the `unused` linter. */
+export function golangciRunsUnused(config: unknown): boolean {
+  const linters = (config as { linters?: Record<string, unknown> } | null)?.linters ?? {};
+  const list = (key: string) => (Array.isArray(linters[key]) ? (linters[key] as unknown[]) : []);
+  if (list("disable").includes("unused")) return false;
+  if (list("enable").includes("unused")) return true;
+  // v2 `default: none` / v1 `disable-all` start from nothing; v2 `fast` skips type-aware linters like unused.
+  if (linters.default === "none" || linters.default === "fast" || linters["disable-all"] === true) return false;
+  // v2 `standard`/`all`, v1 `enable-all`, and both versions' implicit defaults include unused.
+  return true;
+}
 
 const codeHealth: Pillar = {
   id: "code-health",
@@ -127,6 +143,25 @@ const codeHealth: Pillar = {
             pass: true,
             message: `Dead code detection configured: ${knipFound}`,
           };
+        }
+
+        // Check golangci-lint for the unused linter (Go dead code detection)
+        for (const golangciFile of GOLANGCI_CONFIGS) {
+          const content = await readFileContent(repoPath, golangciFile);
+          if (content === null) continue;
+          let config: unknown;
+          try {
+            config = YAML.parse(content);
+          } catch {
+            continue;
+          }
+          if (golangciRunsUnused(config)) {
+            return {
+              criterionId: "dead-code-detection",
+              pass: true,
+              message: `golangci-lint unused linter enabled in ${golangciFile}`,
+            };
+          }
         }
 
         // Check for .deadcode*

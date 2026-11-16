@@ -84,6 +84,67 @@ describe("no-outdated-deps", () => {
 // dead-code-detection
 // ---------------------------------------------------------------------------
 describe("dead-code-detection", () => {
+  test("go: golangci v2 default none with unused enabled", async () => {
+    const dir = await make("go-unused-v2", {
+      ".golangci.yml": 'version: "2"\nlinters:\n  default: none\n  enable:\n    - govet\n    - unused\n',
+    });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(true);
+    expect(r.message).toContain(".golangci.yml");
+  });
+
+  test("go: golangci implicit defaults include unused", async () => {
+    const dir = await make("go-unused-default", { ".golangci.yaml": "run:\n  timeout: 5m\n" });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(true);
+  });
+
+  test("go: golangci json with unused enabled", async () => {
+    const dir = await make("go-unused-json", {
+      ".golangci.json": '{"linters":{"disable-all":true,"enable":["unused"]}}',
+    });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(true);
+  });
+
+  test("go: unused explicitly disabled fails", async () => {
+    const dir = await make("go-unused-disabled", {
+      ".golangci.yml": "linters:\n  disable:\n    - unused\n",
+    });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(false);
+  });
+
+  test("go: default none without unused fails", async () => {
+    const dir = await make("go-unused-none", {
+      ".golangci.yml": 'version: "2"\nlinters:\n  default: none\n  enable:\n    - govet\n',
+    });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(false);
+  });
+
+  test("go: v1 disable-all without unused fails", async () => {
+    const dir = await make("go-unused-disable-all", {
+      ".golangci.yml": "linters:\n  disable-all: true\n  enable:\n    - errcheck\n",
+    });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(false);
+  });
+
+  test("go: v2 fast preset fails", async () => {
+    const dir = await make("go-unused-fast", {
+      ".golangci.yml": 'version: "2"\nlinters:\n  default: fast\n',
+    });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(false);
+  });
+
+  test("go: invalid golangci yaml does not crash", async () => {
+    const dir = await make("go-unused-broken", { ".golangci.yml": "linters: [unclosed" });
+    const r = await deadCodeCheck(dir, mockProjectInfo({ detectedTypes: ["go"] }));
+    expect(r.pass).toBe(false);
+  });
+
   test("csharp: Roslynator in .csproj", async () => {
     const dir = await make("cs-dead", {
       "App.csproj": '<PackageReference Include="Roslynator.Analyzers" />',
