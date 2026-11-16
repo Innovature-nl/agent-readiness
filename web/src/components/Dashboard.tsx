@@ -2,6 +2,7 @@ import type { ReportData } from "../types";
 import Header from "./Header";
 import OverallProgress from "./OverallProgress";
 import RadarChart from "./RadarChart";
+import PackageScores from "./PackageScores";
 import PillarCard from "./PillarCard";
 import RecommendationList from "./RecommendationList";
 
@@ -61,6 +62,8 @@ export default function Dashboard({ data }: Props) {
         <RadarChart data={data} />
         <PillarSummaryBars data={data} />
       </div>
+
+      <PackageScores packageScores={data.packageScores ?? []} pillars={data.pillars} />
 
       {/* Pillar detail cards */}
       <div>
